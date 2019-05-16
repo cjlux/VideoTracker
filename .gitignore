@@ -1,0 +1,6 @@
+__pycache__/
+videos/*
+!videos/20images.mp4
+!videos/cartoonCourt.mp4
+!videos/cartoonLong.mp4
+
