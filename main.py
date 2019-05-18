@@ -106,7 +106,7 @@ class MyApp(QMainWindow):
         self.tabs.addTab(self.imageTab,"Visualisation images")
         self.tabs.addTab(self.onePlot,"Trajectoire cible ")
         self.tabs.addTab(self.twoPlots,"Courbes X(t), Y(t)")
-        self.tabs.addTab(self.functionOfXY,"function f(t)=f(X(t),Y(t))")
+        self.tabs.addTab(self.functionOfXY,"function Z(t)=Z(X(t),Y(t))")
         self.setCentralWidget(self.tabs)
 
         # Menu(s)
