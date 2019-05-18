@@ -1,7 +1,10 @@
 #
-# version 1.3 -- 2019-05-07 -- JLC -- ajout Export CVS
+# version 1.3 -- 2019-05-07 -- JLC --
+#   add Export CVS
 #
-
+# version 1.4 -- 2019-05-18 -- JLC -- 
+#   add PlotFunction tab.
+#
 import numpy as np
 from PyQt5.QtWidgets import QWidget, QPushButton, QVBoxLayout, QHBoxLayout,\
                             QRadioButton, QButtonGroup
@@ -143,10 +146,9 @@ class OnePlot(QWidget):
         self.__axes.clear()
         self.__canvas.draw()
 
-    def Plot(self, target_pos):
+    def Plot(self):
 
-        target_pos = np.array(target_pos)
-        self.mw.target_pos = target_pos
+        target_pos = self.mw.target_pos
         X, Y = target_pos[0], target_pos[1]
 
         self.__btn_imageSize.setEnabled(True)
@@ -301,10 +303,9 @@ class TwoPlots(QWidget):
         self.__axes2.clear()
         self.__canvas.draw()
 
-    def Plot(self, target_pos):
+    def Plot(self):
 
-        target_pos = np.array(target_pos)
-        self.mw.target_pos = target_pos
+        target_pos = self.mw.target_pos
         X, Y = target_pos[0], target_pos[1]
 
         self.__btn_imageSize.setEnabled(True)
@@ -326,7 +327,7 @@ class TwoPlots(QWidget):
             self.__xlabel = "temps [s]"
         else:
             self.__time = np.arange(len(X))+1
-            self.__xlabel = "Numéro image"
+            self.__xlabel = "image #"
 
         self.__AutoSizePlotXYLim()
 

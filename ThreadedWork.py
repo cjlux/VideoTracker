@@ -1,5 +1,6 @@
 #
-# version 1.2 -- 2018-10-10 -- JLC -- version issue de coorigéJLC.
+# version 1.2 -- 2018-10-10 -- JLC --
+#   revision from "tracker video JLC solution".
 #
 
 import cv2

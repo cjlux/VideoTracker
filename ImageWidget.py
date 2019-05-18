@@ -1,5 +1,6 @@
 #
-# version 1.3 -- 2019-05-07 -- JLC -- ajout Export CVS
+# version 1.3 -- 2019-05-07 -- JLC --
+#   add Export CVS
 #
 
 import cv2
@@ -164,10 +165,14 @@ class ImageDisplay(QWidget):
 
         self.setLayout(vbox)
 
-        self.buttonsStateAndConnect()
+        self.__buttonsStateAndConnect()
+        self.__setVideoLabelVisible(False)
 
+    def __setVideoLabelVisible(self, state):
+        for label in self.videoLabels:
+            label.setVisible(state)
 
-    def buttonsStateAndConnect(self):
+    def __buttonsStateAndConnect(self):
 
         self.btn_traj.setEnabled(False)
         self.btn_traj.setStatusTip('Extrait la trajectoire de la cible'+
@@ -211,6 +216,7 @@ class ImageDisplay(QWidget):
                                     keys):
             mess = name +' : '+str(self.dico_video.get(key,'?'))
             field.setText(mess)
+        self.__setVideoLabelVisible(True)            
 
     def __scaleInfoVisible(self, state):
         for widget in self.dicoScale.values():
@@ -309,14 +315,17 @@ class ImageDisplay(QWidget):
         target_pos[1] = height - target_pos[1]
         self.scale_XY(target_pos)
 
+        self.mw.target_pos = target_pos
+        self.mw.clearPlots()
+        
         # tracer la courbe (X(t), Y(t)) :
         self.mw.onePlot.setEnabled(True)
-        self.mw.onePlot.Plot(target_pos)
+        self.mw.onePlot.Plot()
 
         # tracer les trajectoires X(t) et Y(t)
         self.mw.twoPlots.setEnabled(True)
         self.mw.tabs.setCurrentWidget(self.mw.twoPlots)
-        self.mw.twoPlots.Plot(target_pos)
+        self.mw.twoPlots.Plot()
 
         # remettre le bouton extraire_trajectoire disabled:
         self.btn_traj.setEnabled(False)
