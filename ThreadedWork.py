@@ -5,7 +5,12 @@
 
 import cv2
 import numpy as np
-from scipy.misc import imread
+import scipy
+if scipy.__version__ < "1.3":
+    from scipy.misc import imread
+else:
+    import imageio
+    from imageio import imread
 from PyQt5.QtCore import QThread, pyqtSignal
 
 class SplitVideoInImagesThread(QThread):

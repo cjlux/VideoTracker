@@ -4,7 +4,14 @@
 #
 
 import cv2
-from scipy.misc import imread
+
+import scipy
+if scipy.__version__ < "1.3":
+    from scipy.misc import imread
+else:
+    import imageio
+    from imageio import imread
+    
 import numpy as np
 import os
 
