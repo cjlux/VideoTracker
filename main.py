@@ -6,24 +6,27 @@
 # version 1.4 -- 2019-05-18 -- JLC -- 
 #   add PlotFunction tab.
 #
+# version 1.5 -- 2020-04-24 -- JLC -- 
+#   add IPython console tab.
+#
 
 import numpy as np
 import os, sys, platform
 
-from PyQt5.QtWidgets import (QApplication, QFileDialog, QMainWindow,
-                             QDesktopWidget, QTabWidget, QAction)
-from PyQt5.QtGui import QIcon
+from PyQt5.Qt import (QApplication, QFileDialog, QMainWindow,
+                      QDesktopWidget, QTabWidget, QAction, QIcon)
 
 from ImageWidget import ImageDisplay
 from PlotWidget import OnePlot, TwoPlots
 from PlotFunction import FunctionPlot
+from PythonConsoleWidget import PythonConsole
 
 class MyApp(QMainWindow):
 
     icone_dir   = "icones"
-    image_fmt   = "image{:04d}.png" # Nom automatique des images
-    cur_dir     = os.getcwd()+"/"   # Répertoire de travail
-    image_dir   = os.getcwd()+"/Images/" # Dossier des images
+    image_fmt   = "image{:04d}.png" # to format image names
+    cur_dir     = os.getcwd()+"/"   # working directory
+    image_dir   = os.getcwd()+"/Images/" # directory for extracted images foldes
 
     def __init__(self):
 
@@ -36,8 +39,8 @@ class MyApp(QMainWindow):
             print(msg.format(MyApp.image_dir))
             os.mkdir(MyApp.image_dir)
 
-        # Style simple pour l'appel du constructeur de la classe de base :
-        super().__init__()
+        # Simple syntaxe to call the base class contsructor
+        super(MyApp, self).__init__()
 
         #
         # *** Bonnes pratiques  ***
@@ -45,28 +48,29 @@ class MyApp(QMainWindow):
         #   et si con ne connaît pas leur valeur à ce endroit on utilise None:
         #
 
-        # Attributs (objets persistants)
+        # Attributes (persistant objects)
 
-        self.video_path  = None # Chemin de la dernière vidéo
+        self.video_path  = None # last loaded video path
         self.images_dir  = None # Dossier contenant les images
-        self.img_idx     = None # Rang de l'image affichée
-        self.img_path    = None # nom du chemin de l'image courante
-        self.nb_img      = None # nombre d'images
+        self.img_idx     = None # Rank of current displayed image
+        self.img_path    = None # current image path
+        self.nb_img      = None # number of extracted images
 
-        # self.flags : dictionnaire des flags :
-        #  debug         -> affiche ou pas des informations pendant
-        #                   l'exécution de l'application
-        #  displayInfo   -> contrôle l'affichage des boîtes d'information
-        #  autoClearTraj -> effacer automatiquement le tracé trajectoire
-        #                   avant un nouveau tracé
+        # self.flags : dictionnary of flags :
+        #  debug         -> display or not various informations 
+        #  displayInfo   -> display or non information windows
+        #  autoClearTraj -> automatically clear trajectory plot before a new plot
+        #  drawTargetSelection -> draw/not draw the selected color area
+        
         self.flags = {"debug":          False,
                       "displayInfo":    True,
-                      "autoClearTraj":  True}
+                      "autoClearTraj":  True,
+                      "drawTargetSelection": False}
 
         self.__target_pos = None # target position x, y
             
-        self.__initUI()   # Initialisation de l'interface utilisateur
-        self.show()       # Affichage
+        self.__initUI()   # User Interface initialisation
+        self.show()       # Display this window
 
     @property
     def target_pos(self): return self.__target_pos
@@ -78,7 +82,7 @@ class MyApp(QMainWindow):
         self.__target_pos = data
 
     def center(self):
-        '''Pour centrer la fenêtre dans l'écran'''
+        '''To center the current window in the current display'''
         desktop = QApplication.desktop()
         n = desktop.screenNumber(self.cursor().pos())
         screen_center = desktop.screenGeometry(n).center()
@@ -90,36 +94,38 @@ class MyApp(QMainWindow):
         self.resize(800, 600)
         self.center()
         self.setWindowTitle('Application de tracking vidéo')
-        self.statusBar()  # Barre de statut
+        self.statusBar()  # status bar at the bottom of the window
 
-        # Création d'un objet QTabWidget avec 3 onglets
+        # QTabWidget of the application showing the 5 tabs
         self.tabs = QTabWidget()
-        # onglet 1 : affichage des images de la vidéos + méta-données
+        # tab1: display video images & video metadata
         self.imageTab = ImageDisplay(self)
-        # onglet 2 : tracé de la courbe paramétrée (Y(t), X(t))
+        # tab2: plot (Y(t), X(t))
         self.onePlot  = OnePlot(self)
-        # onglet 3 : tracé des courbes X(t) et Y(t)
+        # tab3: plot curves X(t) and Y(t)
         self.twoPlots = TwoPlots(self)
-        # onglet 4 : tracé de f(t)=f(X(t), Y(t))
+        # tab4: plot of f(t)=f(X(t), Y(t), t)
         self.functionOfXY = FunctionPlot(self)
+        # tab5: IPython shell
+        self.pythonConsole = PythonConsole(self)
 
         self.tabs.addTab(self.imageTab,"Visualisation images")
         self.tabs.addTab(self.onePlot,"Trajectoire cible ")
         self.tabs.addTab(self.twoPlots,"Courbes X(t), Y(t)")
         self.tabs.addTab(self.functionOfXY,"function Z(t)=Z(X(t),Y(t))")
+        self.tabs.addTab(self.pythonConsole,"IPython console")
         self.setCentralWidget(self.tabs)
 
         # Menu(s)
-
         self.menubar = self.menuBar()
         if platform.uname().system.startswith('Darw') :
-            # programme exécuté sur une plateforme Apple :
+            # Mac OS specificity:
             self.menubar.setNativeMenuBar(False)
 
-        ###### Le menu 'Fichier'
+        ###### Menu 'Files'
         fileMenu = self.menubar.addMenu('&Fichier')
 
-        ### Ouvrir dossier images :
+        ### Open images directory:
         qa = QAction(QIcon(MyApp.icone_dir+'open.png'),
                            'Ouvrir dossier images', self)
         qa.setShortcut('Ctrl+D')
@@ -130,7 +136,7 @@ class MyApp(QMainWindow):
         qa.triggered.connect(self.imageTab.load_images_from_directory)
         fileMenu.addAction(qa)
 
-        ### Charger un fichier vidéo :
+        ### Load a video file :
         qa = QAction(QIcon(MyApp.icone_dir+'open.png'),
                            "Charger un fichier vidéo", self)
         qa.setShortcut('Ctrl+O')
@@ -141,7 +147,7 @@ class MyApp(QMainWindow):
         qa.triggered.connect(self.imageTab.open_video)
         fileMenu.addAction(qa)
 
-        ### Quitter :
+        ### Quit :
         qa = QAction(QIcon(MyApp.icone_dir+'exit.png'),\
                           'Quitter', self)
         qa.setShortcut('Ctrl+Q')
@@ -160,31 +166,40 @@ class MyApp(QMainWindow):
         ######  Le menu 'Options'
         optionMenu = self.menubar.addMenu('&Options')
 
-        ### Afficher boîtes info :
+        ### Display info box windows:
         qa = QAction('Afficher boîtes info',
                                  self, checkable=True)
         text = 'Afficher ou non les boîtes de dialogue d\'information'
-        qa.setStatusTip(text)# message dans la barre de status
+        qa.setStatusTip(text)# message in the status bar
         qa.setChecked(True)
         qa.triggered.connect(lambda e: self.set_flag("displayInfo",e))
         optionMenu.addAction(qa)
 
-        ### Mode verbeux :
+        ### Verbose mode :
         qa = QAction('Mode verbeux', self, checkable=True)
         text  = 'Afficher ou non des informations dans le shell Python'
-        qa.setStatusTip(text)    # message dans la barre de status
+        qa.setStatusTip(text)    # message in the status bar
         qa.setChecked(True)
-        qa.triggered.connect(lambda e: self.set_flag("debug", e) )
+        qa.triggered.connect(lambda e: self.set_flag("debug", e))
         optionMenu.addAction(qa)
 
-        ### Effacement trajectoire avant tracé :
+        ### Clear trajectory plots before a new plot:
         qa = QAction('Effacement trajectoire avant tracé',
                                 self, checkable=True)
         text  = 'Effacer automatiquement le tracé des onglets <Trajectoires> et '
         text += '<X(t) et Y(t)> un nouveau tracé ?'
-        qa.setStatusTip(text)  # message dans la barre de status
+        qa.setStatusTip(text)  # message in the status bar
         qa.setChecked(True)
         qa.triggered.connect(lambda e: self.set_flag("autoClearTraj", e) )
+        optionMenu.addAction(qa)
+
+        ### draw/not draw the selected color area
+        qa = QAction('Dessiner la sélection couluer de la cible',
+                                self, checkable=True)
+        text  = 'Dessine la zone sélectionnée pour la couleur de la cible'
+        qa.setStatusTip(text)  # message in the status bar
+        qa.setChecked(True)
+        qa.triggered.connect(lambda e: self.set_flag("drawTargetSelection", e))
         optionMenu.addAction(qa)
 
     def set_flag(self, flag, state):

@@ -15,13 +15,10 @@ else:
 import numpy as np
 import os
 
-from PyQt5.QtWidgets import (QWidget, QPushButton, QComboBox,
-                             QRubberBand, QLabel, QFrame,
-                             QVBoxLayout, QHBoxLayout, QGridLayout,
-                             QLineEdit, QFileDialog, QMessageBox,
-                             QSpinBox)
-from PyQt5.QtGui import QIcon, QPixmap
-from PyQt5.QtCore import Qt,QEvent, QRect, QSize
+from PyQt5.Qt import (QWidget, QPushButton, QComboBox, QRubberBand, QLabel, QFrame,
+                      QVBoxLayout, QHBoxLayout, QGridLayout, QLineEdit, QFileDialog,
+                      QMessageBox, QSpinBox, QIcon, QPixmap,
+                      Qt,QEvent, QRect, QSize)
 
 from ProgressBar import ProgressBar
 
@@ -37,8 +34,8 @@ class ImageDisplay(QWidget):
 
     def __init__(self, mainWindow):
 
-        # appel du constructeur de la classe de base :
-        QWidget.__init__(self, mainWindow)
+        # acall the base class constructor:
+        super().__init__(mainWindow)
 
         self.mw = mainWindow
 
@@ -54,12 +51,9 @@ class ImageDisplay(QWidget):
         self.btn_next  = QPushButton(QIcon("icones/go-next.png"), "", self)
         self.btn_first = QPushButton(QIcon("icones/go-first.png"),  "", self)
         self.btn_last  = QPushButton(QIcon("icones/go-last.png"), "", self)
-        self.btn_traj  = QPushButton(QIcon("icones/extract.png"),
-                                     "Extraire...", self)
-        self.btn_clear = QPushButton(QIcon("icones/clear.png"),
-                                     "Effacer courbes...", self)
-        self.__btn_exportCSV = QPushButton(QIcon("icones/csv.png"),
-                                           "Export CSV", self)
+        self.btn_traj  = QPushButton(QIcon("icones/extract.png"), "Extraire...", self)
+        self.btn_clear = QPushButton(QIcon("icones/clear.png"), "Effacer courbes...", self)
+        self.__btn_exportCSV = QPushButton(QIcon("icones/csv.png"), "Export CSV", self)
         self.btn_algo  = QComboBox(self)
 
         self.video_path     = None  # Chemin de la dernière vidéo
@@ -255,7 +249,6 @@ class ImageDisplay(QWidget):
             self.extract_images_from_video()
 
 
-
     def load_images_from_directory(self):
         '''Charge les images '*.png' contenue dans le répertoire
            des images choisi avec un sélecteur graphique.'''
@@ -339,6 +332,7 @@ class ImageDisplay(QWidget):
         self.btn_algo.setEnabled(False)
         self.__btn_exportCSV.setEnabled(True)
 
+
     def extract_images_from_video(self) :
         # nom du fichier video, sans chemin d'accès ni suffixe '.mp4' :
         videoname = os.path.basename(self.video_path)[:-4]
@@ -397,6 +391,7 @@ class ImageDisplay(QWidget):
         print("RGB sélection dans <{}> :".format(os.path.basename(self.img_path)),
               self.mw.target_RGB)
 
+        draw_selection = self.mw.flags["drawTargetSelection"]
         if draw_selection:
             tab[row_min, col_min:col_max+1, :] = 255 - tab[row_min, col_min:col_max+1, :]
             tab[row_max, col_min:col_max+1, :] = 255 - tab[row_max, col_min:col_max+1, :]

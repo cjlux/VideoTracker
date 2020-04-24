@@ -5,8 +5,8 @@
 
 import os
 import cv2
-from PyQt5.QtWidgets import (QDialog, QLabel, QProgressBar, QPushButton,
-                             QVBoxLayout, QHBoxLayout, QMessageBox)
+from PyQt5.Qt import (QDialog, QLabel, QProgressBar, QPushButton,
+                      QVBoxLayout, QHBoxLayout, QMessageBox)
 from PyQt5.QtCore import Qt
 from ThreadedWork import SplitVideoInImagesThread, ExtractTargetFomImagesThread
 

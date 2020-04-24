@@ -5,10 +5,9 @@
 import numpy as np
 from numpy import * # necessary for eval(user expression)
 
-from PyQt5.QtWidgets import (QWidget, QPushButton, QVBoxLayout, QHBoxLayout,
-                             QRadioButton, QButtonGroup, QLabel, QLineEdit,
-                             QFileDialog)
-from PyQt5.QtGui import QIcon
+from PyQt5.Qt import (QWidget, QPushButton, QVBoxLayout, QHBoxLayout,
+                      QRadioButton, QButtonGroup, QLabel, QLineEdit, QFileDialog,
+                      QIcon)
 
 from matplotlib.backends.backend_qt5agg import  \
     FigureCanvasQTAgg as FigureCanvas,          \
@@ -46,7 +45,7 @@ class FunctionPlot(QWidget):
         self.__Z1         = None  # data to plot: Z2(t) = f(X(t),Y(t),t)
 
         self.__labelZ1Edit  = QLabel("Z1 : Python expr. to plot", self)
-        self.__lineZ1Edit   = QLineEdit("2*Y-X",self)
+        self.__lineZ1Edit   = QLineEdit("Y-Y.mean()",self)
         self.__labelZ1label = QLabel("Z1 axis label:", self)
         self.__lineZ1label  = QLineEdit("Z1 [unit]",self)
         
