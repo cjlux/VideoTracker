@@ -3,6 +3,8 @@
 #
 
 import numpy as np
+from numpy import * # necessary for eval(user expression)
+
 from PyQt5.QtWidgets import (QWidget, QPushButton, QVBoxLayout, QHBoxLayout,
                              QRadioButton, QButtonGroup, QLabel, QLineEdit,
                              QFileDialog)
@@ -11,7 +13,7 @@ from PyQt5.QtGui import QIcon
 from matplotlib.backends.backend_qt5agg import  \
     FigureCanvasQTAgg as FigureCanvas,          \
     NavigationToolbar2QT as NavigationToolbar
-from matplotlib.figure import Figure
+import matplotlib.pyplot as plt
 
 
 class FunctionPlot(QWidget):
@@ -30,38 +32,62 @@ class FunctionPlot(QWidget):
 
         # Attributes (persistent data in the object)
         self.__figure     = None  # the plotting figure
-        self.__axes       = None  # plot Axes
+        self.__axe1       = None  # plot Z1 Axes
+        self.__axe2       = None  # plot Z2 Axes (twinx)
         self.__canvas     = None  # used by matplotlib to plot data
         self.__toolbar    = None  # the tool bar below the plot
         self.__time       = None  # abcissa values for plot
         self.__xlim       = None  # plot xmin and xmax
-        self.__zlim       = None  # plot ymin and ymax
-        self.__XZLabel  = ["",""] # X and Y plot labels
-        self.__Z          = None  # data to plot: Z(t) = f(X(t),Y(t))
+        self.__z1lim      = None  # plot ymin and ymax
+        self.__z2lim      = None  # plot ymin and ymax
+        self.__XYLabel1   = ["",""] # X and Y plot labels
+        self.__XYLabel2   = ["",""] # X and Y plot labels
+        self.__Z1         = None  # data to plot: Z1(t) = f(X(t),Y(t),t)
+        self.__Z1         = None  # data to plot: Z2(t) = f(X(t),Y(t),t)
 
-        self.__labelEdit   = QLabel("Python expression to plot:", self)
-        self.__lineEdit    = QLineEdit("np.rad2deg(np.arctan2(Y,X))",self)
-        self.__labelZlabel = QLabel("Z axis label:", self)
-        self.__lineZlabel  = QLineEdit("Z [unit]",self)
+        self.__labelZ1Edit  = QLabel("Z1 : Python expr. to plot", self)
+        self.__lineZ1Edit   = QLineEdit("2*Y-X",self)
+        self.__labelZ1label = QLabel("Z1 axis label:", self)
+        self.__lineZ1label  = QLineEdit("Z1 [unit]",self)
         
-        self.__btnPlot     = QPushButton("Plot Z(t)",self)
-        self.__btnCSV      = QPushButton(QIcon("icones/csv.png"),"Export CSV",
-                                       self)
+        self.__labelZ2Edit  = QLabel("Z2 : Python expr. to plot", self)
+        self.__lineZ2Edit   = QLineEdit("cos(2*pi*12*T)",self)
+        self.__labelZ2label = QLabel("Z2 axis label:", self)
+        self.__lineZ2label  = QLineEdit("Z2 [unit]",self)
         
+        self.__btnPlot1  = QPushButton("Plot Z1(t)",self)
+        self.__btnPlot2  = QPushButton("Plot Z2(t)",self)
+        self.__btnClear1 = QPushButton("Clear Plot",self)
+        self.__btnClear2 = QPushButton("Clear Plot",self)
+        self.__btnClear  = QPushButton("Clear All",self)
+        self.__btnCSV    = QPushButton(QIcon("icones/csv.png"),"Export CSV",
+                                      self)
         self.__initUI()   # GUI initialization
 
 
     def __initUI(self):
-        self.__figure = Figure()
-        self.__axes   = self.__figure.add_subplot(111)
-        self.__figure.subplots_adjust(left=0.1,right=0.98,bottom=0.1,top=0.95)
+        self.__figure, self.__axe1   = plt.subplots()
+        self.__axe2 = self.__axe1.twinx()
+        self.__figure.subplots_adjust(left=0.1,right=0.9,bottom=0.14,top=0.92)
         self.__canvas  = FigureCanvas(self.__figure)
         self.__toolbar = NavigationToolbar(self.__canvas, self)
 
-        self.__btnPlot.clicked.connect(self.Plot)
+        self.__btnPlot1.clicked.connect(self.PlotZ1)
+        self.__btnPlot2.clicked.connect(self.PlotZ2)
+        self.__btnClear1.clicked.connect(self.ClearAxe1)
+        self.__btnClear2.clicked.connect(self.ClearAxe2)
+        self.__btnClear.clicked.connect(self.ClearAxes)
         self.__btnCSV.clicked.connect(self.ExportCSV)
         self.__btnCSV.setEnabled(False)
 
+        mess = 'Type a Python expression using vector X ' + \
+               'and/or vector Y and/or vector T (dicrete time values)'
+        self.__lineZ1Edit.setToolTip(mess)
+        self.__lineZ2Edit.setToolTip(mess)
+
+        self.__lineZ1Edit.setFixedWidth(200)
+        self.__lineZ2Edit.setFixedWidth(200)
+        
         vbox = QVBoxLayout()
         self.setLayout(vbox)
 
@@ -69,12 +95,25 @@ class FunctionPlot(QWidget):
         self.setLayout(vbox)
 
         hbox = QHBoxLayout()
-        hbox.addWidget(self.__labelEdit)
-        hbox.addWidget(self.__lineEdit)
+        hbox.addWidget(self.__labelZ1Edit)
+        hbox.addWidget(self.__lineZ1Edit)
+        hbox.addWidget(self.__labelZ1label)
+        hbox.addWidget(self.__lineZ1label)
         hbox.addStretch()
-        hbox.addWidget(self.__labelZlabel)
-        hbox.addWidget(self.__lineZlabel)
+        hbox.addWidget(self.__btnClear1)
+        hbox.addWidget(self.__btnPlot1)
         
+        vbox.addLayout(hbox)
+
+        hbox = QHBoxLayout()
+        hbox.addWidget(self.__labelZ2Edit)
+        hbox.addWidget(self.__lineZ2Edit)
+        hbox.addWidget(self.__labelZ2label)
+        hbox.addWidget(self.__lineZ2label)
+        hbox.addStretch()
+        hbox.addWidget(self.__btnClear2)
+        hbox.addWidget(self.__btnPlot2)
+
         vbox.addLayout(hbox)
         
         vbox.addWidget(self.__canvas)
@@ -83,73 +122,141 @@ class FunctionPlot(QWidget):
         
         hbox.addWidget(self.__toolbar)
         hbox.addStretch()
-        hbox.addWidget(self.__btnPlot)
+        hbox.addWidget(self.__btnClear)
         hbox.addWidget(self.__btnCSV)
 
         vbox.addLayout(hbox)
 
-    def __AutoSizePlotXZLim(self):
+    def __AutoSizePlotXZ1Lim(self):
 
         if self.mw.target_pos is None: return
 
-        X = self.__time
-        Z = self.__Z
+        X, Z = self.__time, self.__Z1
         deltaZ = Z.max() - Z.min()
-        self.__xlim = np.array([X.min(), X.max()])
-        self.__zlim = np.array([Z.min()-0.1*deltaZ, Z.max()+0.1*deltaZ])
+        self.__xlim  = np.array([X.min(), X.max()])
+        self.__z1lim = np.array([Z.min()-0.1*deltaZ, Z.max()+0.1*deltaZ])
 
-        self.__axes.set_xlim(*self.__xlim)
-        self.__axes.set_ylim(*self.__zlim)
-        self.__axes.set_xlabel(self.__XZLabel[0])
-        self.__axes.set_ylabel(self.__XZLabel[1])
-        self.__axes.set_aspect("auto")
+        self.__axe1.set_xlim(*self.__xlim)
+        self.__axe1.set_ylim(*self.__z1lim)
+        self.__axe1.set_xlabel(self.__XYLabel1[0])
+        self.__axe1.set_ylabel(self.__XYLabel1[1])
+        self.__axe1.set_aspect("auto")
         self.__canvas.draw()
 
+    def __AutoSizePlotXZ2Lim(self):
+
+        if self.mw.target_pos is None: return
+
+        X, Z = self.__time, self.__Z2
+        deltaZ = Z.max() - Z.min()
+        self.__xlim  = np.array([X.min(), X.max()])
+
+        if self.__Z1 is None:
+            self.__z2lim = np.array([Z.min()-0.1*deltaZ, Z.max()+0.1*deltaZ])
+        else:
+            self.__z2lim = self.__z1lim
+
+        self.__axe2.set_xlim(*self.__xlim)
+        self.__axe2.set_ylim(*self.__z2lim)
+        self.__axe2.set_xlabel(self.__XYLabel2[0])
+        self.__axe2.set_ylabel(self.__XYLabel2[1])
+        self.__axe2.set_aspect("auto")
+        self.__canvas.draw()
+
+    def ClearAxe1(self):
+        self.__axe1.clear()
+        self.__canvas.draw()
+        self.__Z1 = None
+
+    def ClearAxe2(self):
+        self.__axe2.clear()
+        self.__canvas.draw()
+        self.__Z2 = None
+
     def ClearAxes(self):
-        self.__axes.clear()
+        self.__axe1.clear()
+        self.__axe2.clear()
         self.__canvas.draw()
         self.__btnCSV.setEnabled(False)
 
-    def Plot(self):
-
-        target_pos = self.mw.target_pos
-        if target_pos is None: return
-        
-        X, Y = target_pos[0], target_pos[1]
-        self.__Z = eval(self.__lineEdit.text())
-        
-        # Effacement automatiqe si demandé à chaque nouveau tracé :
-        if self.mw.flags["autoClearTraj"]:
-            self.__axes.clear()
-
+    def __buildTimeVector(self, target_pos):
         # Récupération de la valeur de FP (Frame per seconde) pour calcul
         # du pas de temps et des abscisses :
+        X = target_pos[0]
         if self.mw.imageTab.video_FPS is not None:
             deltaT = 1./self.mw.imageTab.video_FPS
             self.__time = np.arange(len(X))*deltaT
-            self.__XZLabel[0] = "temps [s]"
+            self.__XYLabel1[0] = "temps [s]"
+            self.__XYLabel2[0] = "temps [s]"
         else:
             self.__time = np.arange(len(X))+1
-            self.__XZLabel[0] = "image #"
+            self.__XYLabel1[0] = "image #"
+            self.__XYLabel2[0] = "image #"
+
+
+    def PlotZ1(self):
+
+        target_pos = self.mw.target_pos
+        if target_pos is None: return
+
+        self.__buildTimeVector(target_pos)
+
+        X, Y, T = target_pos[0], target_pos[1], self.__time
+        expr = self.__lineZ1Edit.text()
+        try:
+            self.__Z1 = eval(expr)
+        except:
+            print("cannot plot this expression <{}>".format(expr))
+            return
             
-        self.__XZLabel[1] = self.__lineZlabel.text()
-        self.__AutoSizePlotXZLim()
+        self.__XYLabel1[1] = self.__lineZ1label.text()
+        self.__AutoSizePlotXZ1Lim()
         
         # tracé de courbe X(t)
-        self.__axes.plot(self.__time, self.__Z,
+        self.__axe1.plot(self.__time, self.__Z1,
                          color = self.mw.target_RGB/255,
                          marker = 'o',
                          markersize = 3,
-                         label="Z(t)="+self.__lineEdit.text())
-        self.__axes.grid(True)
-        self.__axes.legend(loc='best',fontsize=10)
+                         label="Z1(t)="+expr)
+        self.__axe1.grid(True)
+        self.__axe1.legend(loc='best',fontsize=10)
+        self.__canvas.draw()
+
+        self.__btnCSV.setEnabled(True)
+
+    def PlotZ2(self):
+
+        target_pos = self.mw.target_pos
+        if target_pos is None: return
+                
+        self.__buildTimeVector(target_pos)
+
+        X, Y, T = target_pos[0], target_pos[1], self.__time
+        expr = self.__lineZ2Edit.text()
+        try:
+            self.__Z2 = eval(expr)
+        except:
+            print("cannot plot this expression <{}>".format(expr))
+            return
+                        
+        self.__XYLabel2[1] = self.__lineZ2label.text()
+        self.__AutoSizePlotXZ2Lim()
+        
+        # tracé de courbe X(t)
+        self.__axe2.plot(self.__time, self.__Z2,
+                         color = 'm',
+                         marker = 'o',
+                         markersize = 3,
+                         label="Z2(t)="+expr)
+        self.__axe2.grid(True)
+        self.__axe2.legend(loc='best',fontsize=10)
         self.__canvas.draw()
 
         self.__btnCSV.setEnabled(True)
 
     def ExportCSV(self):
         '''Export Data in a CSV file.'''
-        if self.__Z is None :
+        if self.__Z1 is None :
             self.mw.statusBar().showMessage("No data to export")
             return
 
@@ -177,7 +284,7 @@ class FunctionPlot(QWidget):
         fmt = (tformat, zformat)
         data = []
         data.append(time)
-        data.append(self.__Z.tolist())
+        data.append(self.__Z1.tolist())
         data = np.array(data)
 
         fileName = fname[0]
