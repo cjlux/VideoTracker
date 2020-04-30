@@ -2,6 +2,9 @@
 # version 1.2 -- 2019-05-07 -- JLC -- 
 #   revision from "tracker video JLC solution".
 #
+# version 1.3 -- 2020-04-30 -- JLC --
+#   revision for using firt, last and step to loop into the images to process
+#
 
 import os
 import cv2
@@ -53,12 +56,12 @@ class ProgressBar(QDialog):
         self.pbar.setRange(self.__vMin, self.__vMax)
         self.pbar.setValue(self.__vMin)
 
-        self.setWindowTitle('Traitement de la vidéo')
+        self.setWindowTitle('Découpage de la vidéo')
         self.title.setText("Extraction images : ")
 
         self.__thread = SplitVideoInImagesThread(videoCapture,
-                                               self.__images_dir,
-                                               imagesFormat)
+                                                 self.__images_dir,
+                                                 imagesFormat)
 
         self.__thread.ImageExtractedSig.connect(self.updateProgressBar)
         self.__thread.ImageProblemSig.connect(self.updateProgressBar)
@@ -68,13 +71,13 @@ class ProgressBar(QDialog):
                                         target_RGB,
                                         algo,
                                         marge_couleur,
-                                        target_pos):
+                                        target_pos,
+                                        first_last_step):
 
         self.__images_list = [ f for f in os.listdir(self.__images_dir) if f.endswith(".png")]
         self.__images_list.sort()
 
-        self.__vMin = 1
-        self.__vMax = len(self.__images_list)
+        self.__vMin, self.__vMax, _ =  first_last_step
         self.pbar.setRange(self.__vMin, self.__vMax)
         self.pbar.setValue(self.__vMin)
 
@@ -83,11 +86,12 @@ class ProgressBar(QDialog):
 
         # Lancer un __thread pour le travil d'extraction des images de la vidéo :
         self.__thread = ExtractTargetFomImagesThread(self.__images_dir,
-                                                   self.__images_list,
-                                                   target_RGB,
-                                                   algo,
-                                                   marge_couleur,
-                                                   target_pos)
+                                                     self.__images_list,
+                                                     target_RGB,
+                                                     algo,
+                                                     marge_couleur,
+                                                     target_pos,
+                                                     first_last_step)
         self.__thread.TargetExtractedSig.connect(self.updateProgressBar)
         self.__thread.TargetProblemSig.connect(self.updateProgressBar)
         self.__thread.start()
@@ -104,6 +108,7 @@ class ProgressBar(QDialog):
         if value >= 0:
             # l'image N° <value> vient d'être traitée avec succès :
             self.pbar.setValue(value)
+            self.btnOk.setEnabled(True)
             if value == 0 or value == self.pbar.maximum():
                 self.btnOk.setEnabled(True)
             mess = "{:3d}/{:3d}".format(value,self.__vMax)

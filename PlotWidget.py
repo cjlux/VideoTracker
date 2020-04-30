@@ -149,7 +149,7 @@ class OnePlot(QWidget):
     def Plot(self):
 
         target_pos = self.mw.target_pos
-        X, Y = target_pos[0], target_pos[1]
+        X, Y, I = target_pos
 
         self.__btn_imageSize.setEnabled(True)
         self.__btn_autoSize.setEnabled(True)
@@ -306,7 +306,7 @@ class TwoPlots(QWidget):
     def Plot(self):
 
         target_pos = self.mw.target_pos
-        X, Y = target_pos[0], target_pos[1]
+        X, Y, I = target_pos
 
         self.__btn_imageSize.setEnabled(True)
         self.__btn_autoSize.setEnabled(True)
@@ -323,10 +323,10 @@ class TwoPlots(QWidget):
         # du pas de temps et des abscisses :
         if self.mw.imageTab.video_FPS is not None:
             deltaT = 1./self.mw.imageTab.video_FPS
-            self.__time = np.arange(len(X))*deltaT
+            self.__time = np.array(I)*deltaT
             self.__xlabel = "temps [s]"
         else:
-            self.__time = np.arange(len(X))+1
+            self.__time = np.array(I)
             self.__xlabel = "image #"
 
         self.__AutoSizePlotXYLim()

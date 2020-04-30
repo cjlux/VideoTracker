@@ -55,10 +55,15 @@ class ImageDisplay(QWidget):
         self.btn_clear = QPushButton(QIcon("icones/clear.png"), "Effacer courbes...", self)
         self.__btn_exportCSV = QPushButton(QIcon("icones/csv.png"), "Export CSV", self)
         self.btn_algo  = QComboBox(self)
-
+        self.__image_index = QLabel(self)
+        # widget QSpinBox
+        self.images_step  = QSpinBox(parent=self)
+        self.images_firstRank = QSpinBox(parent=self) 
+        self.images_lastRank  = QSpinBox(parent=self) 
+        
         self.video_path     = None  # Chemin de la dernière vidéo
         self.images_dir     = None  # Dossier contenant les images
-        self.img_idx        = None  # Rang de l'image affichée
+        self.__img_idx      = None  # Rang de l'image affichée
         self.img_path       = None  # nom du chemin de l'image courante
         self.nb_img         = None  # nombre d'images
 
@@ -86,20 +91,21 @@ class ImageDisplay(QWidget):
         self.__epsilonVisible(False)
 
     def __initUI(self):
+
         # Onglet "Visualisation images"
         vbox = QVBoxLayout()
 
         # Ligne 1 : extraction trajec
-        ligne1 = QHBoxLayout()
-        ligne1.addStretch(1)
-        ligne1.addWidget(self.btn_algo)
-        ligne1.addWidget(self.btn_traj)
-        ligne1.addWidget(self.btn_clear)
-        ligne1.addWidget(self.__btn_exportCSV)
-        ligne1.addStretch(1)
+        line1 = QHBoxLayout()
+        line1.addStretch(1)
+        line1.addWidget(self.btn_algo)
+        line1.addWidget(self.btn_traj)
+        line1.addWidget(self.btn_clear)
+        line1.addWidget(self.__btn_exportCSV)
+        line1.addStretch(1)
 
         # Ligne 2 : infos video + visu image
-        ligne2 = QHBoxLayout()
+        line2 = QHBoxLayout()
 
         # boîte d'infos sur la vidéo
         infoVBox = QVBoxLayout()
@@ -144,25 +150,37 @@ class ImageDisplay(QWidget):
         
         infoVBox.addStretch()
 
-        ligne2.addLayout(infoVBox)
-        ligne2.addStretch(1)
-        ligne2.addWidget(self.img_lbl) # le QLabel por afficher l'image
-        ligne2.addStretch(1)
+        line2.addLayout(infoVBox)
+        line2.addStretch(1)
+        line2.addWidget(self.img_lbl) # le QLabel por afficher l'image
+        line2.addStretch(1)
 
-        # Ligne 3 : boutons de navigation
-        ligne3 = QHBoxLayout()
-        ligne3.addStretch(1)
-        ligne3.addWidget(self.btn_first)
-        ligne3.addWidget(self.btn_prev)
-        ligne3.addWidget(self.btn_next)
-        ligne3.addWidget(self.btn_last)
-        ligne3.addStretch(1)
+        # line 3 : navigation boutons
+        self.__image_index.setFrameStyle(QFrame.Panel | QFrame.Sunken)
+        self.__image_index.setText("       ")
+        line3 = QHBoxLayout()
+        line3.addStretch(1)
+        line3.addWidget(self.btn_first)
+        line3.addWidget(self.btn_prev)
+        line3.addWidget(self.__image_index)
+        line3.addWidget(self.btn_next)
+        line3.addWidget(self.btn_last)
+        line3.addStretch(1)
 
-        vbox.addLayout(ligne1)
+        # line 4 : first , step, last image selection
+        line4 = QHBoxLayout()
+        line4.addStretch(1)
+        line4.addWidget(self.images_firstRank)
+        line4.addWidget(self.images_step)
+        line4.addWidget(self.images_lastRank)
+        line4.addStretch(1)
+
+        vbox.addLayout(line1)
         vbox.addStretch(1)
-        vbox.addLayout(ligne2)
+        vbox.addLayout(line2)
         vbox.addStretch(1)
-        vbox.addLayout(ligne3)
+        vbox.addLayout(line3)
+        vbox.addLayout(line4)
 
         self.setLayout(vbox)
 
@@ -203,11 +221,51 @@ class ImageDisplay(QWidget):
 
         self.btn_first.clicked.connect(self.first_image)
         self.btn_first.setEnabled(False)
-        self.btn_first.setStatusTip("affiche la première image")
+        self.btn_first.setStatusTip("affiche la première image à traiter")
 
         self.btn_last.clicked.connect(self.last_image)
         self.btn_last.setEnabled(False)
-        self.btn_last.setStatusTip("affiche la dernière image")
+        self.btn_last.setStatusTip("affiche la dernière image à traiter")
+
+        # SpinBoxes parameters:
+        self.images_step.setRange(1,1000)
+        self.images_step.setSingleStep(1)
+        self.images_step.setValue(1)
+        self.images_step.setPrefix("step: ")
+        self.images_step.setEnabled(False)
+        self.images_step.setStatusTip("Fixe le pas pour passer d'une image à l'autre")
+        self.images_step.valueChanged.connect(self.__step_changed)
+        
+        self.images_firstRank.setRange(1,1000)
+        self.images_firstRank.setSingleStep(1)
+        self.images_firstRank.setValue(1)
+        self.images_firstRank.setPrefix("first: ")
+        self.images_firstRank.setEnabled(False)
+        self.images_firstRank.setStatusTip("Fixe le rang de la première image à traiter")
+        self.images_firstRank.valueChanged.connect(self.__first_rank_changed)
+        
+        self.images_lastRank.setRange(1,1000)
+        self.images_lastRank.setSingleStep(1)
+        self.images_lastRank.setValue(1)
+        self.images_lastRank.setPrefix("last: ")
+        self.images_lastRank.setEnabled(False)
+        self.images_lastRank.setStatusTip("Fixe le rang de la dernière image à traiter")
+        self.images_lastRank.valueChanged.connect(self.__last_rank_changed)
+
+    def __first_rank_changed(self, val):
+        if self.img_idx is None: return
+        if self.img_idx < val:
+            self.img_idx = val
+            self.show_image()
+            
+    def __last_rank_changed(self, val):
+        if self.img_idx is None: return
+        if self.img_idx > val:
+            self.img_idx = val
+            self.show_image()
+
+    def __step_changed(self, val):
+        if self.img_idx is None: return
 
     def __setTextInfoVideoGrid(self):
         keys  = ['videoname','nframes','size','fps','duration']
@@ -301,11 +359,19 @@ class ImageDisplay(QWidget):
         # Création d'un objet ProgressBar qui va lancer le travail
         # d'extraction de la cible dans les images tout en affichant une
         # barre d'avancement :
+        
+        first = self.images_firstRank.value()
+        last  = self.images_lastRank.value()
+        step  = self.images_step.value()
+        
+        last = last - (last - first) % step
+        first_last_step = (first, last, step)
         pg = ProgressBar(self.images_dir, self)
         pg.configure_for_target_extraction(self.mw.target_RGB,
                                            algo,
                                            self.epsi_spin.value(),
-                                           target_pos)
+                                           target_pos,
+                                           first_last_step)
         ret = pg.exec_() # lance la barre et le travail d'extraction...
         print("retour de pg.exec_() :",ret)
 
@@ -406,7 +472,14 @@ class ImageDisplay(QWidget):
         self.btn_algo.setEnabled(True)
         self.btn_clear.setEnabled(True)
 
+    @property
+    def img_idx(self): return self.__img_idx
 
+    @img_idx.setter
+    def img_idx(self, index):
+        self.__img_idx = index
+        self.__image_index.setText(str(index))
+                                 
     def update_images(self) :
         '''Méthode à exécuter quand de nouvelles images sont apparues
            après une extraction d'images depuis une vidéo par exemple.
@@ -416,28 +489,47 @@ class ImageDisplay(QWidget):
            - fait afficher la première image et un message d'information.'''
 
         if self.images_dir is None :
-            self.img_idx = None
-            self.btn_prev.setEnabled(False)
+            self.__img_idx = None
+            #self.btn_prev.setEnabled(False)
             self.btn_prev.setStatusTip("")
-            self.btn_next.setEnabled(False)
+            #self.btn_next.setEnabled(False)
             self.btn_next.setStatusTip("")
+            self.images_step.setEnabled(False)
+            self.images_firstRank.setEnabled(False)
+            self.images_lastRank.setEnabled(False)
+            
         else :
             # liste des noms des fichiers image pour avoir leur nombre :
             file_names = [ f for f in os.listdir(self.images_dir) \
                            if f.endswith('.png')]
+            file_names.sort()
             self.nb_img = len(file_names)
 
+              # Update spinBox:
+            self.images_step.setEnabled(True)
+            self.images_firstRank.setEnabled(True)
+            self.images_lastRank.setEnabled(True)
+
+            self.images_firstRank.setValue(1)
+            self.images_step.setValue(1)
+            self.images_lastRank.setValue(self.nb_img)
+
+            self.images_firstRank.setMaximum(self.nb_img)
+            self.images_lastRank.setMaximum(self.nb_img)
+            self.images_step.setMaximum(self.nb_img)
+
             # MAJ des boutons prev et next
-            self.img_idx = 1
-            self.btn_prev.setEnabled(False)
-            self.btn_last.setEnabled(False)
+            self.img_idx = self.images_firstRank.value()
+            self.btn_prev.setEnabled(True)
+            self.btn_first.setEnabled(True)
 
             self.btn_prev.setStatusTip("charge l'image précédente")
 
             self.btn_next.setEnabled(True)
             self.btn_last.setEnabled(True)
-            self.btn_next.setStatusTip("afficher "+self.mw.image_fmt.format(2))
-
+            self.btn_next.setStatusTip("afficher "+self.mw.image_fmt.format(\
+                self.img_idx+self.images_step.value()))
+          
             self.show_image()
             self.__scaleInfoVisible(True)
             self.__epsilonVisible(True)
@@ -472,82 +564,28 @@ class ImageDisplay(QWidget):
 
     def first_image(self) :
         if self.img_idx == None : return
-        self.img_idx = 1
-
-        # MAJ du bouton next
-        self.btn_next.setEnabled(True)
-        self.btn_last.setEnabled(True)
-        tip = "afficher "+self.mw.image_fmt.format(self.img_idx+1)
-        self.btn_next.setStatusTip(tip)  # MAJ statusTip btn next
-        # première image ! désactiver btn prev et vider statusTip
-        self.btn_prev.setEnabled(False)
-        self.btn_first.setEnabled(False)
-        tip = ""
-        self.btn_prev.setStatusTip(tip)
-        self.mw.statusBar().showMessage(tip) # rafraîchir statusBar
+        self.img_idx = self.images_firstRank.value()
+        self.mw.statusBar().showMessage("")
         self.show_image()
 
     def prev_image(self) :
         if self.img_idx == None : return
-        self.img_idx -= 1
-
-        # MAJ du bouton next
-        self.btn_next.setEnabled(True)
-        self.btn_last.setEnabled(True)
-
-        tip = "afficher "+self.mw.image_fmt.format(self.img_idx+1)
-        self.btn_next.setStatusTip(tip)  # MAJ statusTip btn next
-        if self.img_idx == 1 :
-            # première image ! désactiver btn prev et vider statusTip
-            self.btn_prev.setEnabled(False)
-            self.btn_first.setEnabled(False)
-            tip = ""
-            self.btn_prev.setStatusTip(tip)
-        else :
-            self.btn_first.setEnabled(True)
-            tip = "afficher "+self.mw.image_fmt.format(self.img_idx-1)
-            self.btn_prev.setStatusTip(tip) # MAJ statusTip btn prev
-        self.mw.statusBar().showMessage(tip) # rafraîchir statusBar
+        if self.img_idx >= self.images_firstRank.value() + self.images_step.value():
+            self.img_idx -= self.images_step.value()
+        self.mw.statusBar().showMessage("")
         self.show_image()
 
     def last_image(self) :
         if self.img_idx == None : return
-        self.img_idx = self.nb_img # index de la dernière image
-
-        # MAJ du bouton previous
-        self.btn_first.setEnabled(True)
-        self.btn_prev.setEnabled(True)
-        tip = "afficher "+self.mw.image_fmt.format(self.img_idx-1)
-        self.btn_prev.setStatusTip(tip)    # MAJ statusTip btn prev
-        # dernière image : désactiver btn next
-        self.btn_next.setEnabled(False)
-        self.btn_last.setEnabled(False)
-        tip = ""
-        self.btn_next.setStatusTip(tip)
-        self.mw.statusBar().showMessage(tip)     # rafraîchir statusBar
+        self.img_idx = self.images_lastRank.value() # rank of last image to process
+        self.mw.statusBar().showMessage("")
         self.show_image()
 
     def next_image(self) :
         if self.img_idx == None : return
-        self.img_idx += 1
-
-        # MAJ du bouton previous
-        self.btn_prev.setEnabled(True)
-        self.btn_first.setEnabled(True)
-        tip = "afficher "+self.mw.image_fmt.format(self.img_idx-1)
-        self.btn_prev.setStatusTip(tip)    # MAJ statusTip btn prev
-        if self.img_idx == self.nb_img :
-            # dernière image : désactiver btn next
-            self.btn_next.setEnabled(False)
-            self.btn_last.setEnabled(False)
-            tip = ""
-            self.btn_next.setStatusTip(tip)
-        else :
-            self.btn_next.setEnabled(True)
-            self.btn_last.setEnabled(True)
-            tip = "afficher "+self.mw.image_fmt.format(self.img_idx+1)
-            self.btn_next.setStatusTip(tip) # MAJ statusTip btn prev
-        self.mw.statusBar().showMessage(tip)     # rafraîchir statusBar
+        if self.img_idx <= self.images_lastRank.value()-self.images_step.value():
+            self.img_idx += self.images_step.value()
+        self.mw.statusBar().showMessage("")
         self.show_image()
 
     def parse_meta_data(self):
@@ -621,7 +659,7 @@ class ImageDisplay(QWidget):
             return
         self.valid_scale = True
         self.pix_to_mm_coeff = mm/pixels
-        print("valid sacle : ", self.pix_to_mm_coeff)
-        target_pos *= self.pix_to_mm_coeff
+        print("valid scale : ", self.pix_to_mm_coeff)
+        target_pos[:2] *= self.pix_to_mm_coeff
 
 

@@ -23,7 +23,7 @@ from PythonConsoleWidget import PythonConsole
 
 class MyApp(QMainWindow):
 
-    icone_dir   = "icones"
+    icone_dir   = "icones/"
     image_fmt   = "image{:04d}.png" # to format image names
     cur_dir     = os.getcwd()+"/"   # working directory
     image_dir   = os.getcwd()+"/Images/" # directory for extracted images foldes
@@ -126,7 +126,7 @@ class MyApp(QMainWindow):
         fileMenu = self.menubar.addMenu('&Fichier')
 
         ### Open images directory:
-        qa = QAction(QIcon(MyApp.icone_dir+'open.png'),
+        qa = QAction(QIcon(MyApp.icone_dir+'/open.png'),
                            'Ouvrir dossier images', self)
         qa.setShortcut('Ctrl+D')
         qa.setStatusTip("Ouvre un dossier contenant déjà "+\
@@ -137,7 +137,7 @@ class MyApp(QMainWindow):
         fileMenu.addAction(qa)
 
         ### Load a video file :
-        qa = QAction(QIcon(MyApp.icone_dir+'open.png'),
+        qa = QAction(QIcon(MyApp.icone_dir+'/open.png'),
                            "Charger un fichier vidéo", self)
         qa.setShortcut('Ctrl+O')
         qa.setStatusTip('Ouvre un fihier vidéo et le '+\
@@ -148,7 +148,7 @@ class MyApp(QMainWindow):
         fileMenu.addAction(qa)
 
         ### Quit :
-        qa = QAction(QIcon(MyApp.icone_dir+'exit.png'),\
+        qa = QAction(QIcon(MyApp.icone_dir+'/exit.png'),\
                           'Quitter', self)
         qa.setShortcut('Ctrl+Q')
         qa.setStatusTip("Quitter l'application")
@@ -156,7 +156,7 @@ class MyApp(QMainWindow):
         fileMenu.addAction(qa)
 
         ### Export CSV:
-        qa = QAction(QIcon(MyApp.icone_dir+'csv.png'),\
+        qa = QAction(QIcon(MyApp.icone_dir+'/csv.png'),\
                           'Export data to CSV file', self)
         qa.setStatusTip("Exporte les données extraites de la vidéo dans un"+\
                         "fichier CSV.")
