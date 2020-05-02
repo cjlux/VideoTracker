@@ -17,8 +17,8 @@ import os
 
 from PyQt5.Qt import (QWidget, QPushButton, QComboBox, QRubberBand, QLabel, QFrame,
                       QVBoxLayout, QHBoxLayout, QGridLayout, QLineEdit, QFileDialog,
-                      QMessageBox, QSpinBox, QIcon, QPixmap,
-                      Qt,QEvent, QRect, QSize)
+                      QMessageBox, QSpinBox, QIcon, QPixmap, QPainter, QPen,
+                      Qt,QEvent, QRect, QSize, QColor)
 
 from ProgressBar import ProgressBar
 
@@ -29,8 +29,9 @@ class staticproperty(property):
 
 class ImageDisplay(QWidget):
 
-    video_infos = ['vidéo','nb frames','taille','FPS','durée']
-    algo_traj   = ['barycentre','minmax']
+    video_infos     = ['vidéo : {}','nb frames : {}','taille : {}','FPS : {}','durée : {:.2f} sec']
+    video_keys      = ['videoname','nframes','size','fps','duration']
+    algo_traj       = ['barycentre','minmax']
 
     def __init__(self, mainWindow):
 
@@ -40,9 +41,9 @@ class ImageDisplay(QWidget):
         self.mw = mainWindow
 
         # Attributs (objets persistants)
-        self.img_lbl = QLabel(self)           # affichage l'image courante
-        self.img_lbl.installEventFilter(self) # filtre pour capter les événements
-                                              # souris dans l'objet QLabel
+        self.img_lbl = QLabel(self)           # to display the current image
+        self.img_lbl.installEventFilter(self) # filter to catch evenements
+        self.selectTargetRect = None          # display a rectangle to show teh target color selection
 
         self.rubberBand  = QRubberBand(QRubberBand.Line, self)
 
@@ -56,11 +57,16 @@ class ImageDisplay(QWidget):
         self.__btn_exportCSV = QPushButton(QIcon("icones/csv.png"), "Export CSV", self)
         self.btn_algo  = QComboBox(self)
         self.__image_index = QLabel(self)
+        
         # widget QSpinBox
         self.images_step  = QSpinBox(parent=self)
         self.images_firstRank = QSpinBox(parent=self) 
         self.images_lastRank  = QSpinBox(parent=self) 
-        
+
+        # QLabel to display the target color
+        self.picked_color = QLabel(self)
+    
+
         self.video_path     = None  # Chemin de la dernière vidéo
         self.images_dir     = None  # Dossier contenant les images
         self.__img_idx      = None  # Rang de l'image affichée
@@ -96,10 +102,13 @@ class ImageDisplay(QWidget):
         vbox = QVBoxLayout()
 
         # Ligne 1 : extraction trajec
+        self.picked_color.setFrameStyle(QFrame.StyledPanel | QFrame.Plain);
+        
         line1 = QHBoxLayout()
         line1.addStretch(1)
         line1.addWidget(self.btn_algo)
         line1.addWidget(self.btn_traj)
+        line1.addWidget(self.picked_color)
         line1.addWidget(self.btn_clear)
         line1.addWidget(self.__btn_exportCSV)
         line1.addStretch(1)
@@ -109,7 +118,7 @@ class ImageDisplay(QWidget):
 
         # boîte d'infos sur la vidéo
         infoVBox = QVBoxLayout()
-        for i, name  in enumerate(ImageDisplay.video_infos):
+        for _ in ImageDisplay.video_infos:
             label = QLabel(self)
             label.setFrameStyle(QFrame.StyledPanel | QFrame.Plain);
             infoVBox.addWidget(label)
@@ -268,12 +277,12 @@ class ImageDisplay(QWidget):
         if self.img_idx is None: return
 
     def __setTextInfoVideoGrid(self):
-        keys  = ['videoname','nframes','size','fps','duration']
+        
 
         for field, name, key in zip(self.videoLabels,
                                     ImageDisplay.video_infos,
-                                    keys):
-            mess = name +' : '+str(self.dico_video.get(key,'?'))
+                                    ImageDisplay.video_keys):
+            mess = name.format(self.dico_video.get(key,'?'))
             field.setText(mess)
         self.__setVideoLabelVisible(True)            
 
@@ -459,18 +468,29 @@ class ImageDisplay(QWidget):
 
         draw_selection = self.mw.flags["drawTargetSelection"]
         if draw_selection:
-            tab[row_min, col_min:col_max+1, :] = 255 - tab[row_min, col_min:col_max+1, :]
-            tab[row_max, col_min:col_max+1, :] = 255 - tab[row_max, col_min:col_max+1, :]
-            tab[row_min:row_max+1, col_min, :] = 255 - tab[row_min:row_max+1, col_min, :]
-            tab[row_min:row_max+1, col_max, :] = 255 - tab[row_min:row_max+1, col_max, :]
-
-            # écraser le fichier image avec la nouvelle image et afficher
-            cv2.imwrite(self.img_path, tab)
             self.show_image()
+            print("drawTargetSelection")
+            #if self.selectTargetRect is not None : del self.selectTargetRect
+            # create painter instance with pixmap
+            self.selectTargetRect = QPainter(self.img_lbl.pixmap())
+
+            # set rectangle color and thickness
+            self.penRectangle = QPen(QColor(0,0,0))
+            self.penRectangle.setWidth(2)
+
+            # draw rectangle on painter
+            self.selectTargetRect.begin(self)
+            self.selectTargetRect.setPen(self.penRectangle)
+            self.selectTargetRect.drawRect(col_min,row_min,
+                                          col_max-col_min,row_max-row_min)
+            self.selectTargetRect.setOpacity(0.1)
+            self.selectTargetRect.end()
+            #self.show_image()
 
         self.btn_traj.setEnabled(True)
         self.btn_algo.setEnabled(True)
         self.btn_clear.setEnabled(True)
+        self.picked_color.setStyleSheet('background-color : rgb({},{},{})'.format(R, G, B))
 
     @property
     def img_idx(self): return self.__img_idx
@@ -552,7 +572,7 @@ class ImageDisplay(QWidget):
                     'avec la souris...',
                     QMessageBox.Ok)
 
-    def show_image(self) :
+    def show_image(self):
         '''Affiche l'image dont le numéro est donné par l'attribut 'img_idx'.'''
         if self.img_idx is None :
             self.img_path = ''
@@ -596,7 +616,7 @@ class ImageDisplay(QWidget):
         self.video_name     = self.dico_video.get('videoname',"none.mp4")
 
         if self.mw.flags["debug"]:
-            info= " nb images    : {},\n taille image : {},\n FPS : {} image/sec,\n durée : {} sec."
+            info= " nb images    : {},\n taille image : {},\n FPS : {} image/sec,\n durée : {.2f} sec."
             info = info.format(self.video_nframes,
                                self.video_size,
                                self.video_FPS,

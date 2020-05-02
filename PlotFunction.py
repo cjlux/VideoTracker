@@ -54,13 +54,12 @@ class FunctionPlot(QWidget):
         self.__labelZ2label = QLabel("Z2 axis label:", self)
         self.__lineZ2label  = QLineEdit("Z2 [unit]",self)
         
-        self.__btnPlot1  = QPushButton("Plot Z1(t)",self)
-        self.__btnPlot2  = QPushButton("Plot Z2(t)",self)
-        self.__btnClear1 = QPushButton("Clear Plot",self)
-        self.__btnClear2 = QPushButton("Clear Plot",self)
+        self.__btnPlot1  = QPushButton("Plot",self)
+        self.__btnPlot2  = QPushButton("Plot",self)
+        self.__btnClear1 = QPushButton("Clear",self)
+        self.__btnClear2 = QPushButton("Clear",self)
         self.__btnClear  = QPushButton("Clear All",self)
-        self.__btnCSV    = QPushButton(QIcon("icones/csv.png"),"Export CSV",
-                                      self)
+        self.__btnCSV    = QPushButton(QIcon("icones/csv.png"), "Export CSV", self)
         self.__initUI()   # GUI initialization
 
 
@@ -126,40 +125,31 @@ class FunctionPlot(QWidget):
 
         vbox.addLayout(hbox)
 
-    def __AutoSizePlotXZ1Lim(self):
+    def __AutoSizePlotXZLim(self, num_axe, color):
 
         if self.mw.target_pos is None: return
 
-        X, Z = self.__time, self.__Z1
+        if num_axe == 1:
+            X, Z = self.__time, self.__Z1
+            axe = self.__axe1
+            xmil, zlim = self.__xlim, self.__z1lim
+            XYLabel = self.__XYLabel1
+        elif num_axe == 2:
+            X, Z = self.__time, self.__Z2
+            axe = self.__axe2
+            xmil, zlim = self.__xlim, self.__z2lim
+            XYLabel = self.__XYLabel2
+            
         deltaZ = Z.max() - Z.min()
-        self.__xlim  = np.array([X.min(), X.max()])
-        self.__z1lim = np.array([Z.min()-0.1*deltaZ, Z.max()+0.1*deltaZ])
+        xlim = np.array([X.min(), X.max()])
+        zlim = np.array([Z.min()-0.1*deltaZ, Z.max()+0.1*deltaZ])
 
-        self.__axe1.set_xlim(*self.__xlim)
-        self.__axe1.set_ylim(*self.__z1lim)
-        self.__axe1.set_xlabel(self.__XYLabel1[0])
-        self.__axe1.set_ylabel(self.__XYLabel1[1])
-        self.__axe1.set_aspect("auto")
-        self.__canvas.draw()
+        axe.set_xlim(*xlim)
+        axe.set_ylim(*zlim)
+        axe.set_xlabel(XYLabel[0])
+        axe.set_ylabel(XYLabel[1], color=color)
+        axe.set_aspect("auto")
 
-    def __AutoSizePlotXZ2Lim(self):
-
-        if self.mw.target_pos is None: return
-
-        X, Z = self.__time, self.__Z2
-        deltaZ = Z.max() - Z.min()
-        self.__xlim  = np.array([X.min(), X.max()])
-
-        if self.__Z1 is None:
-            self.__z2lim = np.array([Z.min()-0.1*deltaZ, Z.max()+0.1*deltaZ])
-        else:
-            self.__z2lim = self.__z1lim
-
-        self.__axe2.set_xlim(*self.__xlim)
-        self.__axe2.set_ylim(*self.__z2lim)
-        self.__axe2.set_xlabel(self.__XYLabel2[0])
-        self.__axe2.set_ylabel(self.__XYLabel2[1])
-        self.__axe2.set_aspect("auto")
         self.__canvas.draw()
 
     def ClearAxe1(self):
@@ -209,16 +199,18 @@ class FunctionPlot(QWidget):
             return
             
         self.__XYLabel1[1] = self.__lineZ1label.text()
-        self.__AutoSizePlotXZ1Lim()
-        
+        self.__AutoSizePlotXZLim(1, 'b')
+
         # tracé de courbe X(t)
         self.__axe1.plot(self.__time, self.__Z1,
-                         color = self.mw.target_RGB/255,
+                         color = 'b',
                          marker = 'o',
-                         markersize = 3,
+                         markersize = 2,
+                         linewidth = .4,
                          label="Z1(t)="+expr)
         self.__axe1.grid(True)
-        self.__axe1.legend(loc='best',fontsize=10)
+        self.__axe1.legend(fontsize=8, framealpha=0.7,
+                           bbox_to_anchor=(-0.1, 1.1), loc='upper left')
         self.__canvas.draw()
 
         self.__btnCSV.setEnabled(True)
@@ -239,16 +231,18 @@ class FunctionPlot(QWidget):
             return
                         
         self.__XYLabel2[1] = self.__lineZ2label.text()
-        self.__AutoSizePlotXZ2Lim()
+        self.__AutoSizePlotXZLim(2, 'm')
         
         # tracé de courbe X(t)
         self.__axe2.plot(self.__time, self.__Z2,
                          color = 'm',
                          marker = 'o',
-                         markersize = 3,
+                         markersize = 2,
+                         linewidth = .4,
                          label="Z2(t)="+expr)
-        self.__axe2.grid(True)
-        self.__axe2.legend(loc='best',fontsize=10)
+        #self.__axe2.grid(True)
+        self.__axe2.legend(fontsize=8, framealpha=0.7,
+                           bbox_to_anchor=(1.1, 1.1), loc='upper right')
         self.__canvas.draw()
 
         self.__btnCSV.setEnabled(True)

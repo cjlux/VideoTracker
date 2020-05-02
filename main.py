@@ -65,7 +65,7 @@ class MyApp(QMainWindow):
         self.flags = {"debug":          False,
                       "displayInfo":    True,
                       "autoClearTraj":  True,
-                      "drawTargetSelection": False}
+                      "drawTargetSelection": True}
 
         self.__target_pos = None # target position x, y
             
@@ -194,7 +194,7 @@ class MyApp(QMainWindow):
         optionMenu.addAction(qa)
 
         ### draw/not draw the selected color area
-        qa = QAction('Dessiner la sélection couluer de la cible',
+        qa = QAction('Dessiner la sélection couleur de la cible',
                                 self, checkable=True)
         text  = 'Dessine la zone sélectionnée pour la couleur de la cible'
         qa.setStatusTip(text)  # message in the status bar

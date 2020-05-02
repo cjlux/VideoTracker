@@ -56,24 +56,26 @@ class OnePlot(QWidget):
         self.btn_axesEqual.setEnabled(False)
         texte = "Tracé dans des axes orthonormés"
         self.btn_axesEqual.setStatusTip(texte)
+        self.btn_axesEqual.setChecked(True)
 
         self.btn_axesAuto.toggled.connect(lambda : self.__SetAspect("auto"))
         self.btn_axesAuto.setEnabled(False)
         texte = "Tracé dans des axes non orthonormés"
         self.btn_axesAuto.setStatusTip(texte)
-        self.btn_axesAuto.setChecked(True)
+
 
         self.__btn_imageSize.toggled.connect(self.__ImageSizePlotXYLim)
         self.__btn_imageSize.setEnabled(False)
         texte = "Tracé avec les bornes min et max de l'image"
         self.__btn_imageSize.setStatusTip(texte)
+        self.__btn_imageSize.setChecked(True)
 
         self.__btn_autoSize.toggled.connect(self.__AutoSizePlotXYLim)
         self.__btn_autoSize.setEnabled(False)
         texte = "Tracé avec les bornes min et max de la "
         texte += "trajectoire calculée"
         self.__btn_autoSize.setStatusTip(texte)
-        self.__btn_autoSize.setChecked(True)
+        
 
         vbox = QVBoxLayout()
         self.setLayout(vbox)
@@ -86,6 +88,7 @@ class OnePlot(QWidget):
         hbox.addStretch()
         hbox.addWidget(self.btn_axesEqual)
         hbox.addWidget(self.btn_axesAuto)
+        hbox.addStretch()
         hbox.addWidget(self.__btn_imageSize)
         hbox.addWidget(self.__btn_autoSize)
 
@@ -169,7 +172,8 @@ class OnePlot(QWidget):
         self.__axes.plot(X,Y,
                        color = self.mw.target_RGB/255,
                        marker = 'o',
-                       markersize = 3,
+                       markersize = 2,
+                       linewidth = .4,
                        label="Trajectoire XY / algo : {}".format(algo))
 
         self.__axes.grid(True)
@@ -335,7 +339,8 @@ class TwoPlots(QWidget):
         self.__axes1.plot(self.__time,X,
                         color = self.mw.target_RGB/255,
                         marker = 'o',
-                        markersize = 3,
+                        markersize = 2,
+                        linewidth = .4,
                         label="Courbe X(t) [algo : {}]".format(algo))
         self.__axes1.grid(True)
         self.__axes1.legend(loc='best',fontsize=10)
@@ -344,7 +349,8 @@ class TwoPlots(QWidget):
         self.__axes2.plot(self.__time,Y,
                         color = self.mw.target_RGB/255,
                         marker = 'o',
-                        markersize = 3,
+                        markersize = 2,
+                        linewidth = .4,
                         label="Courbe Y(t) [algo : {}]".format(algo))
         self.__axes2.grid(True)
         self.__axes2.legend(loc='best',fontsize=10)
