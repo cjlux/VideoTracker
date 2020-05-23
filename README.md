@@ -11,12 +11,5 @@ The curves X(t), Y(t) and Y(X) are drawn in different tabs.
 ### Trajectory tab
 ![Trajectory tab](doc_images/trajectory.png)
 
-### X(t) Y(t)  tab
-![X(t), Y(t) tab](doc_images/XY.png)
-
 ### Function  tab
 ![Function tab](doc_images/Function.png)
-
-### PythonConsole tab
-![ PythonConsole tab](doc_images/PythonConsole.png)
-
