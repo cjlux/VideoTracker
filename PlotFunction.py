@@ -78,8 +78,11 @@ class FunctionPlot(QWidget):
         self.__btnCSV.clicked.connect(self.ExportCSV)
         self.__btnCSV.setEnabled(False)
 
-        mess = 'Type a Python expression using vector X ' + \
-               'and/or vector Y and/or vector T (dicrete time values)'
+        mess = '''Type in a Python expression like: Y-Y.mean()
+                  In this expression you can use use:
+                  - the position vector X or Y,
+                  - the vecolity vector VX or VX,
+                  - the time vector T'''
         self.__lineZ1Edit.setToolTip(mess)
         self.__lineZ2Edit.setToolTip(mess)
 
@@ -140,9 +143,9 @@ class FunctionPlot(QWidget):
             xmil, zlim = self.__xlim, self.__z2lim
             XYLabel = self.__XYLabel2
             
-        deltaZ = Z.max() - Z.min()
-        xlim = np.array([X.min(), X.max()])
-        zlim = np.array([Z.min()-0.1*deltaZ, Z.max()+0.1*deltaZ])
+        deltaZ = np.nanmax(Z) - np.nanmin(Z)
+        xlim = np.array([np.nanmin(X), np.nanmax(X)])
+        zlim = np.array([np.nanmin(Z)-0.1*deltaZ, np.nanmax(Z)+0.1*deltaZ])
 
         axe.set_xlim(*xlim)
         axe.set_ylim(*zlim)
@@ -191,6 +194,8 @@ class FunctionPlot(QWidget):
         self.__buildTimeVector(target_pos)
 
         X, Y, T = target_pos[0], target_pos[1], self.__time
+        VX, VY  = self.mw.target_veloc
+        
         expr = self.__lineZ1Edit.text()
         try:
             self.__Z1 = eval(expr)
@@ -209,7 +214,7 @@ class FunctionPlot(QWidget):
                          linewidth = .4,
                          label="Z1(t)="+expr)
         self.__axe1.grid(True)
-        self.__axe1.legend(fontsize=8, framealpha=0.7,
+        self.__axe1.legend(fontsize=9, framealpha=0.7,
                            bbox_to_anchor=(-0.1, 1.1), loc='upper left')
         self.__canvas.draw()
 

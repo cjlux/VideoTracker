@@ -253,7 +253,7 @@ class ImageDisplay(QWidget):
         self.images_firstRank.setStatusTip("Fixe le rang de la première image à traiter")
         self.images_firstRank.valueChanged.connect(self.__first_rank_changed)
         
-        self.images_lastRank.setRange(1,1000)
+        self.images_lastRank.setRange(1,10000)
         self.images_lastRank.setSingleStep(1)
         self.images_lastRank.setValue(1)
         self.images_lastRank.setPrefix("last: ")
@@ -384,6 +384,10 @@ class ImageDisplay(QWidget):
         ret = pg.exec_() # lance la barre et le travail d'extraction...
         print("retour de pg.exec_() :",ret)
 
+        if ret != 0:
+            self.mw.target_pos = None
+            return
+
         target_pos = np.array(target_pos)
         width, height = self.video_size
         # l'axe verticale est retourné et decalé:
@@ -393,18 +397,23 @@ class ImageDisplay(QWidget):
         self.mw.target_pos = target_pos
         self.mw.clearPlots()
         
-        # tracer la courbe (X(t), Y(t)) :
+        # Plot trajectory (x(t), y(t)) :
         self.mw.onePlot.setEnabled(True)
         self.mw.onePlot.Plot()
 
-        # tracer les trajectoires X(t) et Y(t)
-        self.mw.twoPlots.setEnabled(True)
-        self.mw.tabs.setCurrentWidget(self.mw.twoPlots)
-        self.mw.twoPlots.Plot()
+        # Plot curves x(t) and y(t)
+        self.mw.twoPlots_xy.setEnabled(True)
+        self.mw.tabs.setCurrentWidget(self.mw.twoPlots_xy)
+        self.mw.twoPlots_xy.Plot()
+
+        # Plot curves Vx(t) and Vy(t)
+        self.mw.twoPlots_VxVy.setEnabled(True)
+        self.mw.tabs.setCurrentWidget(self.mw.twoPlots_xy)
+        self.mw.twoPlots_VxVy.Plot()
 
         # remettre le bouton extraire_trajectoire disabled:
-        self.btn_traj.setEnabled(False)
-        self.btn_algo.setEnabled(False)
+        #self.btn_traj.setEnabled(False)
+        #self.btn_algo.setEnabled(False)
         self.__btn_exportCSV.setEnabled(True)
 
 

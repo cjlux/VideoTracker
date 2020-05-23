@@ -67,7 +67,8 @@ class MyApp(QMainWindow):
                       "autoClearTraj":  True,
                       "drawTargetSelection": True}
 
-        self.__target_pos = None # target position x, y
+        self.__target_pos   = None # target positions x, y
+        self.__target_veloc = None # target velocities x, y
             
         self.__initUI()   # User Interface initialisation
         self.show()       # Display this window
@@ -81,6 +82,15 @@ class MyApp(QMainWindow):
             raise Exception("target_pos should be a numpy.ndarray object !")
         self.__target_pos = data
 
+    @property
+    def target_veloc(self): return self.__target_veloc
+
+    @target_veloc.setter
+    def target_veloc(self, data):
+        if not isinstance(data, np.ndarray):
+            raise Exception("target_pos should be a numpy.ndarray object !")
+        self.__target_veloc = data
+
     def center(self):
         '''To center the current window in the current display'''
         desktop = QApplication.desktop()
@@ -91,7 +101,7 @@ class MyApp(QMainWindow):
         self.move(geo_window.topLeft())
 
     def __initUI(self):
-        self.resize(800, 600)
+        self.resize(850, 650)
         self.center()
         self.setWindowTitle('Application de tracking vidéo')
         self.statusBar()  # status bar at the bottom of the window
@@ -100,20 +110,23 @@ class MyApp(QMainWindow):
         self.tabs = QTabWidget()
         # tab1: display video images & video metadata
         self.imageTab = ImageDisplay(self)
-        # tab2: plot (Y(t), X(t))
+        # tab2: plot (y(t), x(t))
         self.onePlot  = OnePlot(self)
-        # tab3: plot curves X(t) and Y(t)
-        self.twoPlots = TwoPlots(self)
-        # tab4: plot of f(t)=f(X(t), Y(t), t)
+        # tab3: plot curves x(t) and y(t)
+        self.twoPlots_xy = TwoPlots(self, "position")
+        # tab4: plot curves Vx(t) and Vy(t)
+        self.twoPlots_VxVy = TwoPlots(self, "velocity")
+        # tab5: plot of f(t)=f(x(t), y(t), t)
         self.functionOfXY = FunctionPlot(self)
-        # tab5: IPython shell
+        # tab6: IPython shell
         self.pythonConsole = PythonConsole(self)
 
         self.tabs.addTab(self.imageTab,"Visualisation images")
-        self.tabs.addTab(self.onePlot,"Trajectoire cible ")
-        self.tabs.addTab(self.twoPlots,"Courbes X(t), Y(t)")
-        self.tabs.addTab(self.functionOfXY,"function Z(t)=Z(X(t),Y(t))")
-        self.tabs.addTab(self.pythonConsole,"IPython console")
+        self.tabs.addTab(self.onePlot,"Trajectoire")
+        self.tabs.addTab(self.twoPlots_xy,"Positions")
+        self.tabs.addTab(self.twoPlots_VxVy,"Vitesses")
+        self.tabs.addTab(self.functionOfXY,"Outil de tracé")
+        self.tabs.addTab(self.pythonConsole,"IPython")
         self.setCentralWidget(self.tabs)
 
         # Menu(s)
@@ -209,7 +222,8 @@ class MyApp(QMainWindow):
 
     def clearPlots(self):
         self.onePlot.ClearAxes()
-        self.twoPlots.ClearAxes()
+        self.twoPlots_xy.ClearAxes()
+        self.twoPlots_VxVy.ClearAxes()
         self.functionOfXY.ClearAxes()
 
     def ExportCSV(self):
