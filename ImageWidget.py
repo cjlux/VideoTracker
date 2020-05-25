@@ -234,7 +234,7 @@ class ImageDisplay(QWidget):
         texte = "Export des données dans un fichier CSV"
         self.btn_exportCSV.setStatusTip(texte)
 
-        if importCSV: self.btn_algo.addItems(ImageDisplay.algo_traj)
+        if not importCSV: self.btn_algo.addItems(ImageDisplay.algo_traj)
         self.btn_algo.setEnabled(False)
 
         self.btn_prev.setEnabled(False)
