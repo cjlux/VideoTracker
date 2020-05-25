@@ -313,7 +313,7 @@ class VideoTracker(QMainWindow):
 
         # Clear display tab:
         self.imageTab.btn_algo.clear()
-        self.imageTab.buttonsState()
+        self.imageTab.buttonsState(importCSV=True)
         self.imageTab.img_lbl.setPixmap(QPixmap())
 
     def ExportCSV(self):

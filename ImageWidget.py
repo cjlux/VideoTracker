@@ -194,7 +194,7 @@ class ImageDisplay(QWidget):
 
         self.setLayout(vbox)
 
-        #self.buttonsState()
+        self.buttonsState()
         self.__buttonsConnect()
         self.__setVideoLabelVisible(False)
 
@@ -214,7 +214,7 @@ class ImageDisplay(QWidget):
         self.images_firstRank.valueChanged.connect(self.__first_rank_changed)
         self.images_lastRank.valueChanged.connect(self.__last_rank_changed)
 
-    def buttonsState(self):
+    def buttonsState(self, importCSV=False):
 
         self.btn_traj.setEnabled(False)
         self.picked_color.setText("X")
@@ -234,7 +234,7 @@ class ImageDisplay(QWidget):
         texte = "Export des données dans un fichier CSV"
         self.btn_exportCSV.setStatusTip(texte)
 
-        self.btn_algo.addItems(ImageDisplay.algo_traj)
+        if importCSV: self.btn_algo.addItems(ImageDisplay.algo_traj)
         self.btn_algo.setEnabled(False)
 
         self.btn_prev.setEnabled(False)
