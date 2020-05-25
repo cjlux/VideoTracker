@@ -189,7 +189,9 @@ class OnePlot(QWidget):
         self.__SetAspect("equal")
 
         # tracé de courbe paramétrée (x(t),y(t)) :
-        self.__axes.plot(X,Y, color = self.mw.target_RGB/255,
+        color = 'b' if self.mw.target_RGB is None else self.mw.target_RGB/255
+        self.__axes.plot(X,Y,
+                         color = color,
                          marker = 'o', markersize = 2, linewidth = .4,
                          label="Trajectoire XY / algo : {}".format(algo))
         self.__axes.grid(True)
@@ -294,7 +296,7 @@ class TwoPlots(QWidget):
         self.__figure = Figure()
         self.__axes1   = self.__figure.add_subplot(211)
         self.__axes2   = self.__figure.add_subplot(212)
-        self.__figure.subplots_adjust(left=0.095,right=0.99,bottom=0.11,top=0.98)
+        self.__figure.subplots_adjust(left=0.120,right=0.99,bottom=0.11,top=0.98)
         self.__canvas  = FigureCanvas(self.__figure)
         self.__toolbar = NavigationToolbar(self.__canvas, self)
         #self.__toolbar.setMinimumWidth(450)
@@ -445,9 +447,11 @@ class TwoPlots(QWidget):
         else:
             Xlabel, Ylabel = curveLabelX.format(""), curveLabelY.format("")
 
+        color = 'b' if self.mw.target_RGB is None else self.mw.target_RGB/255
+
         # tracé de courbe x(t)
         self.__axes1.plot(self.__time, self.__data1,
-                          color = self.mw.target_RGB/255,
+                          color = color,
                           marker = 'o', markersize = 2,
                           linewidth = .4,
                           label=Xlabel)
@@ -458,7 +462,7 @@ class TwoPlots(QWidget):
 
         # tracé de courbe y(t)
         self.__axes2.plot(self.__time, self.__data2,
-                          color = self.mw.target_RGB/255,
+                          color = color,
                           marker = 'o', markersize = 2,
                           linewidth = .4, 
                           label=Ylabel)

@@ -54,19 +54,19 @@ class ImageDisplay(QWidget):
         self.btn_last  = QPushButton(QIcon("icones/go-last.png"), "", self)
         self.btn_traj  = QPushButton(QIcon("icones/extract.png"), "Extraire...", self)
         self.btn_clear = QPushButton(QIcon("icones/clear.png"), "Effacer courbes...", self)
-        self.__btn_exportCSV = QPushButton(QIcon("icones/csv.png"), "Export CSV", self)
-        self.btn_algo  = QComboBox(self)
-        self.__image_index = QLabel(self)
+        self.btn_exportCSV = QPushButton(QIcon("icones/exportCSV.png"), "Export CSV", self)
+        self.btn_algo      = QComboBox(self)
+        self.image_index   = QLabel(self)
         
         # widget QSpinBox
-        self.images_step  = QSpinBox(parent=self)
+        self.images_step      = QSpinBox(parent=self)
         self.images_firstRank = QSpinBox(parent=self) 
         self.images_lastRank  = QSpinBox(parent=self) 
 
         # QLabel to display the target color
-        self.picked_color = QLabel(self)
+        self.target_color_label = QLabel("target color",parent=self) 
+        self.picked_color       = QLabel(self)
     
-
         self.video_path     = None  # Chemin de la dernière vidéo
         self.images_dir     = None  # Dossier contenant les images
         self.__img_idx      = None  # Rang de l'image affichée
@@ -81,19 +81,19 @@ class ImageDisplay(QWidget):
         self.videoLabels    = []    # liste de QLabel contenant les infos vidéo
         self.dico_video     = {}    # dictionnaire des méta-données
 
+        self.dico_unit      = {}    # dictionary "pixels", "mm"
         self.scale_pixel    = None  # nombre de pixels pour conversion en mm
         self.scale_mm       = None  # nbre de mm pour scale_pixel
-
-        self.lbl_epsilon    = None  # label epsilon
-        self.epsi_spin      = None  # boite de choix de epsilon
-    
         self.valid_scale    = False # données de l'échelle valides ou pas
         self.pix_to_mm_coeff= None  # le coefficient de converion pixels -> mm
         self.dicoScale      = {}    # dictionnaire des QWidget d'info scale
 
+        self.lbl_epsilon    = None  # label epsilon
+        self.epsi_spin      = None  # boite de choix de epsilon    
+
         # créer l'onglet de visualisation image """
         self.__initUI()
-        self.__scaleInfoVisible(False)
+        self.scaleInfoVisible(False)
         self.__epsilonVisible(False)
 
     def __initUI(self):
@@ -108,9 +108,10 @@ class ImageDisplay(QWidget):
         line1.addStretch(1)
         line1.addWidget(self.btn_algo)
         line1.addWidget(self.btn_traj)
+        line1.addWidget(self.target_color_label)
         line1.addWidget(self.picked_color)
         line1.addWidget(self.btn_clear)
-        line1.addWidget(self.__btn_exportCSV)
+        line1.addWidget(self.btn_exportCSV)
         line1.addStretch(1)
 
         # Ligne 2 : infos video + visu image
@@ -154,7 +155,7 @@ class ImageDisplay(QWidget):
         self.epsi_spin = QSpinBox(self)
         self.epsi_spin.setRange(1,50)
         self.epsi_spin.setSingleStep(1)
-        self.epsi_spin.setValue(5)
+        self.epsi_spin.setValue(10)
         grid.addWidget(self.epsi_spin,5,2)
         
         infoVBox.addStretch()
@@ -165,13 +166,13 @@ class ImageDisplay(QWidget):
         line2.addStretch(1)
 
         # line 3 : navigation boutons
-        self.__image_index.setFrameStyle(QFrame.Panel | QFrame.Sunken)
-        self.__image_index.setText("       ")
+        self.image_index.setFrameStyle(QFrame.Panel | QFrame.Sunken)
+        self.image_index.setText("       ")
         line3 = QHBoxLayout()
         line3.addStretch(1)
         line3.addWidget(self.btn_first)
         line3.addWidget(self.btn_prev)
-        line3.addWidget(self.__image_index)
+        line3.addWidget(self.image_index)
         line3.addWidget(self.btn_next)
         line3.addWidget(self.btn_last)
         line3.addStretch(1)
@@ -193,46 +194,58 @@ class ImageDisplay(QWidget):
 
         self.setLayout(vbox)
 
-        self.__buttonsStateAndConnect()
+        #self.buttonsState()
+        self.__buttonsConnect()
         self.__setVideoLabelVisible(False)
 
     def __setVideoLabelVisible(self, state):
         for label in self.videoLabels:
             label.setVisible(state)
 
-    def __buttonsStateAndConnect(self):
+    def __buttonsConnect(self):            
+        self.btn_traj.clicked.connect(self.extract_trajectoire)
+        self.btn_clear.clicked.connect(self.mw.clearPlots)
+        self.btn_exportCSV.clicked.connect(self.mw.ExportCSV)
+        self.btn_prev.clicked.connect(self.prev_image)
+        self.btn_next.clicked.connect(self.next_image)
+        self.btn_first.clicked.connect(self.first_image)
+        self.btn_last.clicked.connect(self.last_image)
+        self.images_step.valueChanged.connect(self.__step_changed)
+        self.images_firstRank.valueChanged.connect(self.__first_rank_changed)
+        self.images_lastRank.valueChanged.connect(self.__last_rank_changed)
+
+    def buttonsState(self):
 
         self.btn_traj.setEnabled(False)
+        self.picked_color.setText("X")
+        self.picked_color.setEnabled(False)
+        
         self.btn_traj.setStatusTip('Extrait la trajectoire de la cible'+
             'dont la couleur a été choisie')
-        self.btn_traj.clicked.connect(self.extract_trajectoire)
 
+        self.target_color_label.setEnabled(False)
+        self.picked_color.setStyleSheet('background-color : rgb(255, 255, 255)')
+        
         self.btn_clear.setEnabled(False)
         self.btn_clear.setStatusTip('Nettoye tous les tracés des onglets'+
             '<trajectoire> et <X(t), Y(t)>')
-        self.btn_clear.clicked.connect(self.mw.clearPlots)
 
-        self.__btn_exportCSV.clicked.connect(self.mw.ExportCSV)
-        self.__btn_exportCSV.setEnabled(False)
+        self.btn_exportCSV.setEnabled(False)
         texte = "Export des données dans un fichier CSV"
-        self.__btn_exportCSV.setStatusTip(texte)
+        self.btn_exportCSV.setStatusTip(texte)
 
         self.btn_algo.addItems(ImageDisplay.algo_traj)
         self.btn_algo.setEnabled(False)
 
-        self.btn_prev.clicked.connect(self.prev_image)
         self.btn_prev.setEnabled(False)
         self.btn_prev.setStatusTip("affiche l'image précédente")
 
-        self.btn_next.clicked.connect(self.next_image)
         self.btn_next.setEnabled(False)
         self.btn_next.setStatusTip("affiche l'image suivante")
 
-        self.btn_first.clicked.connect(self.first_image)
         self.btn_first.setEnabled(False)
         self.btn_first.setStatusTip("affiche la première image à traiter")
 
-        self.btn_last.clicked.connect(self.last_image)
         self.btn_last.setEnabled(False)
         self.btn_last.setStatusTip("affiche la dernière image à traiter")
 
@@ -243,7 +256,6 @@ class ImageDisplay(QWidget):
         self.images_step.setPrefix("step: ")
         self.images_step.setEnabled(False)
         self.images_step.setStatusTip("Fixe le pas pour passer d'une image à l'autre")
-        self.images_step.valueChanged.connect(self.__step_changed)
         
         self.images_firstRank.setRange(1,1000)
         self.images_firstRank.setSingleStep(1)
@@ -251,7 +263,6 @@ class ImageDisplay(QWidget):
         self.images_firstRank.setPrefix("first: ")
         self.images_firstRank.setEnabled(False)
         self.images_firstRank.setStatusTip("Fixe le rang de la première image à traiter")
-        self.images_firstRank.valueChanged.connect(self.__first_rank_changed)
         
         self.images_lastRank.setRange(1,10000)
         self.images_lastRank.setSingleStep(1)
@@ -259,7 +270,6 @@ class ImageDisplay(QWidget):
         self.images_lastRank.setPrefix("last: ")
         self.images_lastRank.setEnabled(False)
         self.images_lastRank.setStatusTip("Fixe le rang de la dernière image à traiter")
-        self.images_lastRank.valueChanged.connect(self.__last_rank_changed)
 
     def __first_rank_changed(self, val):
         if self.img_idx is None: return
@@ -276,9 +286,8 @@ class ImageDisplay(QWidget):
     def __step_changed(self, val):
         if self.img_idx is None: return
 
-    def __setTextInfoVideoGrid(self):
+    def setTextInfoVideoGrid(self):
         
-
         for field, name, key in zip(self.videoLabels,
                                     ImageDisplay.video_infos,
                                     ImageDisplay.video_keys):
@@ -286,7 +295,7 @@ class ImageDisplay(QWidget):
             field.setText(mess)
         self.__setVideoLabelVisible(True)            
 
-    def __scaleInfoVisible(self, state):
+    def scaleInfoVisible(self, state):
         for widget in self.dicoScale.values():
             widget.setVisible(state)
 
@@ -348,7 +357,7 @@ class ImageDisplay(QWidget):
             print("méta données :", self.dico_video)
 
             self.parse_meta_data()
-            self.__setTextInfoVideoGrid()
+            self.setTextInfoVideoGrid()
 
             # Mettre à jour l'application avec les nouvelles images chargées :
             self.update_images()
@@ -395,33 +404,36 @@ class ImageDisplay(QWidget):
         self.scale_XY(target_pos)
 
         self.mw.target_pos = target_pos
+        self.display_plots()
+        
+        # remettre le bouton extraire_trajectoire disabled:
+        #self.btn_traj.setEnabled(False)
+        #self.btn_algo.setEnabled(False)
+        self.btn_exportCSV.setEnabled(True)
+
+    def display_plots(self):
         self.mw.clearPlots()
         
-        # Plot trajectory (x(t), y(t)) :
+        # Plot trajectory (X(t), Y(t)) :
         self.mw.onePlot.setEnabled(True)
         self.mw.onePlot.Plot()
 
-        # Plot curves x(t) and y(t)
+        # Plot curves X(t) and Y(t)
         self.mw.twoPlots_xy.setEnabled(True)
         self.mw.tabs.setCurrentWidget(self.mw.twoPlots_xy)
         self.mw.twoPlots_xy.Plot()
 
-        # Plot curves Vx(t) and Vy(t)
+        # Plot curves VX(t) and VY(t)
         self.mw.twoPlots_VxVy.setEnabled(True)
         self.mw.tabs.setCurrentWidget(self.mw.twoPlots_xy)
         self.mw.twoPlots_VxVy.Plot()
 
-        # remettre le bouton extraire_trajectoire disabled:
-        #self.btn_traj.setEnabled(False)
-        #self.btn_algo.setEnabled(False)
-        self.__btn_exportCSV.setEnabled(True)
-
 
     def extract_images_from_video(self) :
-        # nom du fichier video, sans chemin d'accès ni suffixe '.mp4' :
+        # name of the video file without path and suffix:
         videoname = os.path.basename(self.video_path)[:-4]
 
-        # répertoire pour stocker les images :
+        # directory where to put extracted iamges:
         self.images_dir = self.mw.image_dir + videoname + "/"
 
         if os.path.isdir(self.images_dir) :
@@ -445,14 +457,13 @@ class ImageDisplay(QWidget):
         self.dico_video["videoname"] = videoname+".mp4"
         self.__setTextInfoVideoGrid()
 
-        
-
         # Création d'un objet ProgressBar qui va lancer le travail
         # d'extraction des images tout en affichant une barre d'avancement :
         pg = ProgressBar(self.images_dir, self)
         pg.configure_for_video_extraction(video, self.mw.image_fmt)
         ret = pg.exec_()
         print("retour de pg.exec_() :", ret)
+        if ret != 0: return
 
         # MAJ de la liste des fichiers images :
         self.update_images()
@@ -499,6 +510,7 @@ class ImageDisplay(QWidget):
         self.btn_traj.setEnabled(True)
         self.btn_algo.setEnabled(True)
         self.btn_clear.setEnabled(True)
+        self.target_color_label.setEnabled(True)
         self.picked_color.setStyleSheet('background-color : rgb({},{},{})'.format(R, G, B))
 
     @property
@@ -507,7 +519,7 @@ class ImageDisplay(QWidget):
     @img_idx.setter
     def img_idx(self, index):
         self.__img_idx = index
-        self.__image_index.setText(str(index))
+        self.image_index.setText(str(index))
                                  
     def update_images(self) :
         '''Méthode à exécuter quand de nouvelles images sont apparues
@@ -528,6 +540,8 @@ class ImageDisplay(QWidget):
             self.images_lastRank.setEnabled(False)
             
         else :
+            self.buttonsState()
+            
             # liste des noms des fichiers image pour avoir leur nombre :
             file_names = [ f for f in os.listdir(self.images_dir) \
                            if f.endswith('.png')]
@@ -560,7 +574,7 @@ class ImageDisplay(QWidget):
                 self.img_idx+self.images_step.value()))
           
             self.show_image()
-            self.__scaleInfoVisible(True)
+            self.scaleInfoVisible(True)
             self.__epsilonVisible(True)
             self.mw.tabs.setCurrentWidget(self)
 
@@ -671,8 +685,7 @@ class ImageDisplay(QWidget):
             print(self.selection)
             self.computeTargetColor()
 
-
-    def scale_XY(self, target_pos):
+    def scale_XY(self, target_pos=None):
 
         self.valid_scale = False
         try :
@@ -689,6 +702,5 @@ class ImageDisplay(QWidget):
         self.valid_scale = True
         self.pix_to_mm_coeff = mm/pixels
         print("valid scale : ", self.pix_to_mm_coeff)
-        target_pos[:2] *= self.pix_to_mm_coeff
 
 

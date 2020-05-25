@@ -216,6 +216,7 @@ class FunctionPlot(QWidget):
         self.__axe1.grid(True)
         self.__axe1.legend(fontsize=9, framealpha=0.7,
                            bbox_to_anchor=(-0.1, 1.1), loc='upper left')
+        self.__axe1.tick_params(axis='y', labelcolor='b')
         self.__canvas.draw()
 
         self.__btnCSV.setEnabled(True)
@@ -228,6 +229,8 @@ class FunctionPlot(QWidget):
         self.__buildTimeVector(target_pos)
 
         X, Y, T = target_pos[0], target_pos[1], self.__time
+        VX, VY  = self.mw.target_veloc
+        
         expr = self.__lineZ2Edit.text()
         try:
             self.__Z2 = eval(expr)
@@ -248,6 +251,7 @@ class FunctionPlot(QWidget):
         #self.__axe2.grid(True)
         self.__axe2.legend(fontsize=8, framealpha=0.7,
                            bbox_to_anchor=(1.1, 1.1), loc='upper right')
+        self.__axe2.tick_params(axis='y', labelcolor='m')
         self.__canvas.draw()
 
         self.__btnCSV.setEnabled(True)

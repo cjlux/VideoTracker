@@ -3,6 +3,7 @@
 #
 
 import numpy as np
+from copy import copy
 from PyQt5.Qt import (QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QMessageBox)
 
 from PythonEmbeded import ConsoleWidget
@@ -29,7 +30,7 @@ class PythonConsole(QWidget):
 
         self.__btn_loadData.clicked.connect(self.__loadData)
         self.__btn_loadData.setEnabled(True)
-        texte = "Load current X, Y & T vectors"
+        texte = "Load current X, Y, VX, VY & T vectors"
         self.__btn_loadData.setStatusTip(texte)
 
         self.__btn_clearData.clicked.connect(self.__clearData)
@@ -56,21 +57,26 @@ class PythonConsole(QWidget):
             self.mw.statusBar().showMessage("No data to load, sorry...")
             return
 
-        target_pos = self.mw.target_pos.copy()        
-        X, Y = target_pos[0], target_pos[1]
+        target_pos    = copy(self.mw.target_pos)
+        target_veloc  = copy(self.mw.target_veloc)
+        csv_dataFrame = copy(self.mw.csv_dataFrame)
+        X, Y   = target_pos[0], target_pos[1]
+        VX, VY = target_veloc[0], target_veloc[1]
+        
+        print(target_pos)
         
         if self.mw.imageTab.video_FPS is not None:
             T = np.arange(len(X))/self.mw.imageTab.video_FPS
         else:
             T = np.arange(len(X))+1
-        dico = {'X':X, 'Y':Y, 'T':T, 'target_pos':target_pos}
-        print("dico:",dico)
+        dico = {'X':X, 'Y':Y, 'VX':VX, 'VY':VY, 'T':T, 'target_pos':target_pos, 'csv_dataFrame':csv_dataFrame}
+        #print("dico:",dico)
         self.__IpythonConsole.push_vars(dico)
         self.__IpythonConsole.setFocus() # give focus to the IPython console
         rep = QMessageBox.information(
                   None,         # no parent widget for QMessageBox
                   'Message',    # bandeau de la fenêtre
-                  'Objects X, Y and tar_pos have been loaded',
+                  'Objects X, Y, VX, VY, T and target_pos have been loaded',
                    QMessageBox.Ok)
 
 
@@ -79,11 +85,13 @@ class PythonConsole(QWidget):
             self.__IpythonConsole.execute_command('if "X" in dir(): del X')
             self.__IpythonConsole.execute_command('if "Y" in dir(): del Y')
             self.__IpythonConsole.execute_command('if "target_pos" in dir():del target_pos')
+            self.__IpythonConsole.execute_command('if "VX" in dir(): del VX')
+            self.__IpythonConsole.execute_command('if "VY" in dir(): del VY')
             self.__IpythonConsole.execute_command('clear')
             rep = QMessageBox.information(
                   None,         # no parent widget for QMessageBox
                   'Message',    # bandeau de la fenêtre
-                  'Objects X, Y and tar_pos have been deleted',
+                  'Objects X, Y, VX, VY, T and and target_pos have been deleted',
                    QMessageBox.Ok)
             self.__IpythonConsole.print_text("")
             

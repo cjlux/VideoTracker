@@ -1,7 +1,7 @@
 #
 # version 1.3 -- 2019-05-07 -- JLC -- 
 #   add Export CVS
-#   self.__target_pos is moved in class MyApp
+#   self.__target_pos is moved in class VideoTracker
 #
 # version 1.4 -- 2019-05-18 -- JLC -- 
 #   add PlotFunction tab.
@@ -9,53 +9,57 @@
 # version 1.5 -- 2020-04-24 -- JLC -- 
 #   add IPython console tab.
 #
+# version 1.6 -- 2020-05-23 -- JLC -- 
+#   add CVS import.
+#
 
 import numpy as np
 import os, sys, platform
+import pandas
 
-from PyQt5.Qt import (QApplication, QFileDialog, QMainWindow,
-                      QDesktopWidget, QTabWidget, QAction, QIcon)
+from PyQt5.Qt import (QApplication, QFileDialog, QMainWindow, QMessageBox,
+                      QDesktopWidget, QTabWidget, QAction, QIcon, QPixmap)
 
 from ImageWidget import ImageDisplay
 from PlotWidget import OnePlot, TwoPlots
 from PlotFunction import FunctionPlot
 from PythonConsoleWidget import PythonConsole
 
-class MyApp(QMainWindow):
+class VideoTracker(QMainWindow):
 
-    icone_dir   = "icones/"
     image_fmt   = "image{:04d}.png" # to format image names
-    cur_dir     = os.getcwd()+"/"   # working directory
-    image_dir   = os.getcwd()+"/Images/" # directory for extracted images foldes
+    icone_dir   = "icones/"         # directory of icones
+    cur_dir     = os.getcwd()       # working directory
+    image_dir   = os.path.join(os.getcwd(), "Images") # directory of images
+    csv_dir     = os.path.join(cur_dir, "CSV")        # directory of CSV files
 
     def __init__(self):
 
-        # Gestion des répertoires statiques
-        if not os.path.isdir(MyApp.icone_dir) :
+        if not os.path.isdir(VideoTracker.icone_dir) :
             print("Répertoire des icônes non trouvé.")
 
-        if not os.path.isdir(MyApp.image_dir) :
+        if not os.path.isdir(VideoTracker.image_dir) :
             msg = "Répertoire des images créés :\n\t'{}'"
-            print(msg.format(MyApp.image_dir))
-            os.mkdir(MyApp.image_dir)
+            print(msg.format(VideoTracker.image_dir))
+            os.mkdir(VideoTracker.image_dir)
+            
+        if not os.path.isdir(VideoTracker.csv_dir) :
+            msg = "Répertoire CSV créé :\n\t'{}'"
+            print(msg.format(VideoTracker.csv_dir))
+            os.mkdir(VideoTracker.csv_dir)
+            
 
         # Simple syntaxe to call the base class contsructor
-        super(MyApp, self).__init__()
+        super(VideoTracker, self).__init__()
 
         #
         # *** Bonnes pratiques  ***
         #   Définir dans le constructeur les données persistantes en tant qu'attributs,
-        #   et si con ne connaît pas leur valeur à ce endroit on utilise None:
+        #   et si on ne connaît pas leur valeur à ce endroit on utilise None:
         #
 
-        # Attributes (persistant objects)
-
-        self.video_path  = None # last loaded video path
-        self.images_dir  = None # Dossier contenant les images
-        self.img_idx     = None # Rank of current displayed image
-        self.img_path    = None # current image path
-        self.nb_img      = None # number of extracted images
-
+        self.csv_dir = os.path.join(VideoTracker.cur_dir, "CSV")
+        
         # self.flags : dictionnary of flags :
         #  debug         -> display or not various informations 
         #  displayInfo   -> display or non information windows
@@ -66,9 +70,11 @@ class MyApp(QMainWindow):
                       "displayInfo":    True,
                       "autoClearTraj":  True,
                       "drawTargetSelection": True}
-
+        self.csv_dataFrame  = None # Data 
         self.__target_pos   = None # target positions x, y
         self.__target_veloc = None # target velocities x, y
+        self.target_RGB     = None # color plor drawing plots
+        self.unit_dict      = None
             
         self.__initUI()   # User Interface initialisation
         self.show()       # Display this window
@@ -139,7 +145,7 @@ class MyApp(QMainWindow):
         fileMenu = self.menubar.addMenu('&Fichier')
 
         ### Open images directory:
-        qa = QAction(QIcon(MyApp.icone_dir+'/open.png'),
+        qa = QAction(QIcon(VideoTracker.icone_dir+'/open.png'),
                            'Ouvrir dossier images', self)
         qa.setShortcut('Ctrl+D')
         qa.setStatusTip("Ouvre un dossier contenant déjà "+\
@@ -150,7 +156,7 @@ class MyApp(QMainWindow):
         fileMenu.addAction(qa)
 
         ### Load a video file :
-        qa = QAction(QIcon(MyApp.icone_dir+'/open.png'),
+        qa = QAction(QIcon(VideoTracker.icone_dir+'/open.png'),
                            "Charger un fichier vidéo", self)
         qa.setShortcut('Ctrl+O')
         qa.setStatusTip('Ouvre un fihier vidéo et le '+\
@@ -160,20 +166,27 @@ class MyApp(QMainWindow):
         qa.triggered.connect(self.imageTab.open_video)
         fileMenu.addAction(qa)
 
+        ### Export CSV:
+        qa = QAction(QIcon(VideoTracker.icone_dir+'/exportCSV.png'),\
+                          'Export CSV', self)
+        qa.setStatusTip("Exporte les positions extraites de la vidéo dans un"+\
+                        "fichier CSV.")
+        qa.triggered.connect(self.ExportCSV)
+        fileMenu.addAction(qa)
+
+        ### Import CSV:
+        qa = QAction(QIcon(VideoTracker.icone_dir+'/importCSV.png'),\
+                          'Import CSV', self)
+        qa.setStatusTip("Importe les données depuis un fichier CSV forgé par VideoTracker.")
+        qa.triggered.connect(self.ImportCSV)
+        fileMenu.addAction(qa)
+
         ### Quit :
-        qa = QAction(QIcon(MyApp.icone_dir+'/exit.png'),\
+        qa = QAction(QIcon(VideoTracker.icone_dir+'/exit.png'),\
                           'Quitter', self)
         qa.setShortcut('Ctrl+Q')
         qa.setStatusTip("Quitter l'application")
         qa.triggered.connect(self.close)
-        fileMenu.addAction(qa)
-
-        ### Export CSV:
-        qa = QAction(QIcon(MyApp.icone_dir+'/csv.png'),\
-                          'Export data to CSV file', self)
-        qa.setStatusTip("Exporte les données extraites de la vidéo dans un"+\
-                        "fichier CSV.")
-        qa.triggered.connect(self.ExportCSV)
         fileMenu.addAction(qa)
 
         ######  Le menu 'Options'
@@ -226,16 +239,95 @@ class MyApp(QMainWindow):
         self.twoPlots_VxVy.ClearAxes()
         self.functionOfXY.ClearAxes()
 
+    def ImportCSV(self):
+        '''Import Data from CSV file.'''
+
+        # Lance un sélecteur de fichier pour choisir le fichier à écrire.'''
+        fname = QFileDialog.getOpenFileName(self,
+                                            'Choisir un nom de fichier CSV à importer',
+                                            VideoTracker.csv_dir,
+                                            'Fichier CSV (*.csv *.txt)')
+        if fname[0] == "": return
+
+        with open(fname[0], 'r', encoding="utf8") as F:
+            data = F.readlines()
+
+        if "VIDEOTRACKER MADE THIS FILE!" not in data[0]:
+            rep = QMessageBox.critical(
+                    None,        # QMessageBox parent widget
+                    'Erreur',    # window bar
+                    "Désolé, le fichier CSV <{}> n'a pas été\forgé par VideoTracker..."\
+                    .format(os.path.basename(fname[0])), QMessageBox.Ok)
+            return
+
+        # Extract the meta-data dictionary and fill the field in the Image display:
+        exec("self.imageTab.dico_video="+data[1].split('#')[1].strip())
+        self.imageTab.parse_meta_data()
+        self.imageTab.setTextInfoVideoGrid()
+
+        # Extract the unit-scale dictionary and fill the field in the Image display:
+        unit_data = data[2].split('#')[1].strip()
+        exec("self.unit_dict={}".format(unit_data))
+        print("self.unit_dict:",self.unit_dict)
+        self.imageTab.scale_pixel.setText(str(self.unit_dict["pixels"]))
+        self.imageTab.scale_mm.setText(str(self.unit_dict["mm"]))
+        self.imageTab.scale_XY()
+        self.imageTab.scaleInfoVisible(True)
+
+        # Extract algo information:
+        algo = data[3].split('#')[1].strip()
+        try:
+            index = ImageDisplay.algo_traj.index(algo)
+        except:
+            rep = QMessageBox.critical(
+            None,        # QMessageBox parent widget
+            'Erreur',    # window bar
+            "L'information sur l'algorithme <{}> n'est pas reconnue".format(algo))
+            return
+        self.imageTab.btn_algo.setCurrentIndex(index)
+        print('index:', index,
+              'self.imageTab.btn_algo.currentText():',
+              self.imageTab.btn_algo.currentText())
+            
+        # Extract RGB target color:
+        RGB = data[4].split('#')[1].strip()
+        print("self.target_RGB=np."+RGB)
+        try:
+            exec("self.target_RGB=np."+RGB)
+        except:
+            rep = QMessageBox.critical(
+            None,        # QMessageBox parent widget
+            'Erreur',    # window bar
+            "L'information RGB <{}> n'est pas reconnue".format(RGB))
+            return
+
+        # Read the CSV file with pandas:
+        self.csv_dataFrame = pandas.read_csv(fname[0],
+                                             header=5,
+                                             delimiter=';',
+                                             encoding="utf8")
+        data = self.csv_dataFrame.values
+        data = [data[:,1], data[:,2], data[:,3]]
+        self.target_pos = np.array(data)
+        self.imageTab.display_plots()
+
+        # Clear display tab:
+        self.imageTab.btn_algo.clear()
+        self.imageTab.buttonsState()
+        self.imageTab.img_lbl.setPixmap(QPixmap())
+
     def ExportCSV(self):
         '''Export Data in a CSV file.'''
         if self.__target_pos is None :
-            self.statusBar().showMessage("pasq de données à exporter.")
+            self.statusBar().showMessage("pas de données à exporter.")
             return
 
         # Lance un sélecteur de fichier pour choisir le fichier à écrire.'''
+        video_name = self.imageTab.dico_video['videoname'].replace(".mp4","")
+        cvs_name = os.path.join(VideoTracker.csv_dir, video_name)
         fname = QFileDialog.getSaveFileName(self,
                                             'Choisir un nom de fichier CSV à écrire',
-                                            self.cur_dir,
+                                            cvs_name,
                                             'Fichier CSV (*.csv *.txt)')
         if fname[0] == "": return 
 
@@ -251,24 +343,33 @@ class MyApp(QMainWindow):
         # building headers:
         xlabel, ylabel   =  "X [pixels]", "Y [pixels]"
         xformat, yformat = "%10d", "%10d"
+        unit_dict = {"pixels": "?", "mm":"?"}
         if self.imageTab.valid_scale:
             xlabel, ylabel   = "X [mm]", "Y [mm]"
             xformat, yformat = "%10.6e", "%10.6e"
-            
-        header = "{};{};{}".format(tlabel, xlabel, ylabel)
-        fmt = (tformat, xformat, yformat)
+            unit_dict["pixels"] = float(self.imageTab.scale_pixel.text())
+            unit_dict["mm"]     = float(self.imageTab.scale_mm.text())
+
+        header = "VIDEOTRACKER MADE THIS FILE!\n"
+        header += str(self.imageTab.dico_video)+"\n"
+        header += str(unit_dict)+"\n"
+        header += self.imageTab.btn_algo.currentText()+"\n"
+        header += repr(self.target_RGB)+"\n"
+        header += "{};{};{}; num image".format(tlabel, xlabel, ylabel)
+        fmt = (tformat, xformat, yformat, "%d")
         data = []
         data.append(time)
         data.append(self.__target_pos[0].tolist())
         data.append(self.__target_pos[1].tolist())
+        data.append(self.__target_pos[2].tolist())
         data = np.array(data)
 
         fileName = fname[0]
         if not fileName.endswith(".csv"): fileName += ".csv"
         np.savetxt(fileName, data.transpose(), delimiter=";",
-                   header=header, fmt=fmt)
+                   header=header, fmt=fmt, encoding="utf8")
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    my  = MyApp()
+    VT  = VideoTracker()
     sys.exit(app.exec_())
