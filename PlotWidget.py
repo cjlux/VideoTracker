@@ -323,7 +323,16 @@ class TwoPlots(QWidget):
             hbox.addLayout(vb)
             
         vbox.addLayout(hbox)            
-      
+
+    def reset(self):
+        if self.__quantity == "velocity":
+            for w in (self.btn_smooth_Vx, self.btn_smooth_Vy,
+                      self.x_mav_nb_pts, self.y_mav_nb_pts):
+                w.setVisible(True)
+                w.setEnabled(True)
+            self.x_mav_nb_pts.setValue(self.x_mav_nb_pts.minimum())
+            self.y_mav_nb_pts.setValue(self.y_mav_nb_pts.minimum())
+                                     
 
     def __smooth_Vx_wanted(self, checked):
         if checked:

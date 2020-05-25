@@ -541,6 +541,8 @@ class ImageDisplay(QWidget):
             
         else :
             self.buttonsState()
+            self.mw.clearPlots()
+            self.mw.twoPlots_VxVy.reset()
             
             # liste des noms des fichiers image pour avoir leur nombre :
             file_names = [ f for f in os.listdir(self.images_dir) \
@@ -587,6 +589,9 @@ class ImageDisplay(QWidget):
                 text = ""
             self.scale_pixel.setText(text)
 
+            self.mw.twoPlots_VxVy.reset()
+            
+
             if self.mw.flags["displayInfo"]:
                 rep = QMessageBox.information(
                     None,             # widget parent de QMessageBox
@@ -594,6 +599,7 @@ class ImageDisplay(QWidget):
                     'Vous pouvez maintenant sélectionner une couleur de cible'+\
                     'avec la souris...',
                     QMessageBox.Ok)
+                
 
     def show_image(self):
         '''Affiche l'image dont le numéro est donné par l'attribut 'img_idx'.'''

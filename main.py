@@ -260,6 +260,8 @@ class VideoTracker(QMainWindow):
                     .format(os.path.basename(fname[0])), QMessageBox.Ok)
             return
 
+        self.clearPlots()
+        
         # Extract the meta-data dictionary and fill the field in the Image display:
         exec("self.imageTab.dico_video="+data[1].split('#')[1].strip())
         self.imageTab.parse_meta_data()
@@ -308,13 +310,16 @@ class VideoTracker(QMainWindow):
                                              encoding="utf8")
         data = self.csv_dataFrame.values
         data = [data[:,1], data[:,2], data[:,3]]
-        self.target_pos = np.array(data)
+        self.target_pos = np.array(data)        
         self.imageTab.display_plots()
 
         # Clear display tab:
         self.imageTab.btn_algo.clear()
         self.imageTab.buttonsState(importCSV=True)
         self.imageTab.img_lbl.setPixmap(QPixmap())
+        
+        self.twoPlots_VxVy.reset()
+
 
     def ExportCSV(self):
         '''Export Data in a CSV file.'''
