@@ -12,7 +12,8 @@
 import numpy as np
 from collections import deque
 from PyQt5.Qt import (QWidget, QPushButton, QVBoxLayout, QHBoxLayout,
-                     QRadioButton, QCheckBox, QButtonGroup, QSpinBox)
+                      QRadioButton, QCheckBox, QButtonGroup, QSpinBox)
+from PyQt5.QtCore import Qt
 
 from matplotlib.backends.backend_qt5agg import  \
     FigureCanvasQTAgg as FigureCanvas,          \
@@ -122,13 +123,14 @@ class OnePlot(QWidget):
         if self.mw.target_pos is None: return
 
         xlabel, ylabel =  "X [pixels]", "Y [pixels]"
-        X, Y = self.mw.target_pos[0], self.mw.target_pos[1]
-        self.__xlim = np.array([np.nanmin(X), np.nanmax(X)])
-        self.__ylim = np.array([np.nanmin(Y), np.nanmax(Y)])
+        scale = self.mw.imageTab.pix_to_mm_coeff
+        
+        X, Y = self.mw.target_pos[0], self.mw.target_pos[1]        
+        self.__xlim = np.array([np.nanmin(X), np.nanmax(X)])*scale
+        self.__ylim = np.array([np.nanmin(Y), np.nanmax(Y)])*scale
 
         if self.mw.imageTab.valid_scale:
-            xlabel = "X [mm]"
-            ylabel = "Y [mm]"
+            xlabel, ylabel = "X [mm]", "Y [mm]"
 
         offset = (self.__ylim[1]-self.__ylim[0])/10
         self.__ylim += np.array([-offset, offset])
@@ -148,12 +150,12 @@ class OnePlot(QWidget):
         
         xlabel, ylabel =  "X [pixels]", "Y [pixels]"
         w, h = self.mw.imageTab.video_size
-        self.__xlim = np.array([0, w-1], dtype=float)
-        self.__ylim = np.array([0, h-1], dtype=float)
+        scale = self.mw.imageTab.pix_to_mm_coeff
+
+        self.__xlim = np.array([0, w-1], dtype=float)*scale
+        self.__ylim = np.array([0, h-1], dtype=float)*scale
 
         if self.mw.imageTab.valid_scale:
-            self.__xlim *= self.mw.imageTab.pix_to_mm_coeff
-            self.__ylim *= self.mw.imageTab.pix_to_mm_coeff
             xlabel, ylabel = "X [mm]", "Y [mm]"
 
         self.__axes.set_xlim(*self.__xlim)
@@ -172,6 +174,7 @@ class OnePlot(QWidget):
 
         target_pos = self.mw.target_pos
         X, Y, I = target_pos
+        scale = self.mw.imageTab.pix_to_mm_coeff
 
         self.btn_imageSize.setEnabled(True)
         self.btn_autoSize.setEnabled(True)
@@ -190,7 +193,7 @@ class OnePlot(QWidget):
 
         # tracé de courbe paramétrée (x(t),y(t)) :
         color = 'b' if self.mw.target_RGB is None else self.mw.target_RGB/255
-        self.__axes.plot(X,Y,
+        self.__axes.plot(X*scale,Y*scale,
                          color = color,
                          marker = 'o', markersize = 2, linewidth = .4,
                          label="Trajectoire XY / algo : {}".format(algo))
@@ -332,6 +335,8 @@ class TwoPlots(QWidget):
                 w.setEnabled(True)
             self.x_mav_nb_pts.setValue(self.x_mav_nb_pts.minimum())
             self.y_mav_nb_pts.setValue(self.y_mav_nb_pts.minimum())
+            self.btn_smooth_Vx.setCheckState(Qt.Unchecked)
+            self.btn_smooth_Vy.setCheckState(Qt.Unchecked)
                                      
 
     def __smooth_Vx_wanted(self, checked):
@@ -407,7 +412,8 @@ class TwoPlots(QWidget):
             return
         else:        
             self.__data1, self.__data2, I = target_pos
-
+        scale = self.mw.imageTab.pix_to_mm_coeff
+            
         if self.__quantity == "position":
             self.btn_imageSize.setEnabled(True)
             self.btn_autoSize.setEnabled(True)
@@ -459,7 +465,7 @@ class TwoPlots(QWidget):
         color = 'b' if self.mw.target_RGB is None else self.mw.target_RGB/255
 
         # tracé de courbe x(t)
-        self.__axes1.plot(self.__time, self.__data1,
+        self.__axes1.plot(self.__time, self.__data1*scale,
                           color = color,
                           marker = 'o', markersize = 2,
                           linewidth = .4,
@@ -470,7 +476,7 @@ class TwoPlots(QWidget):
         self.__axes1.legend(loc='best',fontsize=10)
 
         # tracé de courbe y(t)
-        self.__axes2.plot(self.__time, self.__data2,
+        self.__axes2.plot(self.__time, self.__data2*scale,
                           color = color,
                           marker = 'o', markersize = 2,
                           linewidth = .4, 
@@ -489,8 +495,10 @@ class TwoPlots(QWidget):
         y1label, y2label =  TwoPlots.Ylabels[self.__quantity]
         self.__xlim  = np.array([np.nanmin(self.__time), np.nanmax(self.__time)])
 
+        scale = self.mw.imageTab.pix_to_mm_coeff
+
         if not self.btn_smooth_Vx.isChecked():
-            self.__ylim1 = np.array([np.nanmin(self.__data1), np.nanmax(self.__data1)])
+            self.__ylim1 = np.array([np.nanmin(self.__data1), np.nanmax(self.__data1)])*scale
             offset = (self.__ylim1[1]-self.__ylim1[0])/10
             self.__ylim1 += np.array([-offset, offset])
         else:
@@ -498,13 +506,13 @@ class TwoPlots(QWidget):
             pass
 
         if not self.btn_smooth_Vy.isChecked():
-            self.__ylim2 = np.array([np.nanmin(self.__data2), np.nanmax(self.__data2)])
+            self.__ylim2 = np.array([np.nanmin(self.__data2), np.nanmax(self.__data2)])*scale
             offset = (self.__ylim2[1]-self.__ylim2[0])/10
             self.__ylim2 += np.array([-offset, offset])
         else:
             #self.__ylim2 = self.__axes2.get_ylim()
             pass
-        
+                
         if self.mw.imageTab.valid_scale:
             y1label, y2label = TwoPlots.Ylabels[self.__quantity+"_mm"]
 
@@ -523,15 +531,15 @@ class TwoPlots(QWidget):
 
         if self.mw.target_pos is None: return
         
+        scale = self.mw.imageTab.pix_to_mm_coeff
+
         y1label, y2label = TwoPlots.Ylabels[self.__quantity]
         w, h = self.mw.imageTab.video_size
         self.__xlim  = np.array([np.nanmin(self.__time), np.nanmax(self.__time)])
-        self.__ylim1 = np.array([0, w-1], dtype=float)
-        self.__ylim2 = np.array([0, h-1], dtype=float)
+        self.__ylim1 = np.array([0, w-1], dtype=float)*scale
+        self.__ylim2 = np.array([0, h-1], dtype=float)*scale
 
         if self.mw.imageTab.valid_scale:
-            self.__ylim1 *= self.mw.imageTab.pix_to_mm_coeff
-            self.__ylim2 *= self.mw.imageTab.pix_to_mm_coeff
             y1label, y2label = TwoPlots.Ylabels[self.__quantity+"_mm"]
 
         self.__axes1.set_xlim(*self.__xlim)

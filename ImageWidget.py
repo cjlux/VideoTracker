@@ -85,7 +85,7 @@ class ImageDisplay(QWidget):
         self.scale_pixel    = None  # nombre de pixels pour conversion en mm
         self.scale_mm       = None  # nbre de mm pour scale_pixel
         self.valid_scale    = False # données de l'échelle valides ou pas
-        self.pix_to_mm_coeff= None  # le coefficient de converion pixels -> mm
+        self.pix_to_mm_coeff= 1.    # le coefficient de converion pixels -> mm
         self.dicoScale      = {}    # dictionnaire des QWidget d'info scale
 
         self.lbl_epsilon    = None  # label epsilon
@@ -401,14 +401,12 @@ class ImageDisplay(QWidget):
         width, height = self.video_size
         # l'axe verticale est retourné et decalé:
         target_pos[1] = height - target_pos[1]
-        self.scale_XY(target_pos)
+        self.scale_XY()
 
         self.mw.target_pos = target_pos
         self.display_plots()
         
         # remettre le bouton extraire_trajectoire disabled:
-        #self.btn_traj.setEnabled(False)
-        #self.btn_algo.setEnabled(False)
         self.btn_exportCSV.setEnabled(True)
 
     def display_plots(self):
@@ -691,9 +689,11 @@ class ImageDisplay(QWidget):
             print(self.selection)
             self.computeTargetColor()
 
-    def scale_XY(self, target_pos=None):
+    def scale_XY(self):
 
         self.valid_scale = False
+        self.pix_to_mm_coeff = 1.
+        
         try :
             pixels = float(self.scale_pixel.text())
             mm     = float(self.scale_mm.text())
