@@ -453,7 +453,7 @@ class ImageDisplay(QWidget):
                                             
         self.parse_meta_data()
         self.dico_video["videoname"] = videoname+".mp4"
-        self.__setTextInfoVideoGrid()
+        self.setTextInfoVideoGrid()
 
         # Création d'un objet ProgressBar qui va lancer le travail
         # d'extraction des images tout en affichant une barre d'avancement :
