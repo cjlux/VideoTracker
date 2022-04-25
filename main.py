@@ -12,6 +12,9 @@
 # version 1.6 -- 2020-05-23 -- JLC -- 
 #   add CVS import.
 #
+# version 1.7 -- 2021-04-28 -- JLC -- 
+#   Fix bug: data in exported CSV file are not scaled.
+#
 
 import numpy as np
 import os, sys, platform
@@ -349,11 +352,14 @@ class VideoTracker(QMainWindow):
         xlabel, ylabel   =  "X [pixels]", "Y [pixels]"
         xformat, yformat = "%10d", "%10d"
         unit_dict = {"pixels": "?", "mm":"?"}
+        scale = 1.
         if self.imageTab.valid_scale:
             xlabel, ylabel   = "X [mm]", "Y [mm]"
             xformat, yformat = "%10.6e", "%10.6e"
             unit_dict["pixels"] = float(self.imageTab.scale_pixel.text())
             unit_dict["mm"]     = float(self.imageTab.scale_mm.text())
+            # retrieve scale
+            scale = self.imageTab.pix_to_mm_coeff
 
         header = "VIDEOTRACKER MADE THIS FILE!\n"
         header += str(self.imageTab.dico_video)+"\n"
@@ -364,8 +370,8 @@ class VideoTracker(QMainWindow):
         fmt = (tformat, xformat, yformat, "%d")
         data = []
         data.append(time)
-        data.append(self.__target_pos[0].tolist())
-        data.append(self.__target_pos[1].tolist())
+        data.append((self.__target_pos[0]*scale).tolist())
+        data.append((self.__target_pos[1]*scale).tolist())
         data.append(self.__target_pos[2].tolist())
         data = np.array(data)
 
