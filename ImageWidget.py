@@ -426,6 +426,11 @@ class ImageDisplay(QWidget):
         self.mw.tabs.setCurrentWidget(self.mw.twoPlots_xy)
         self.mw.twoPlots_VxVy.Plot()
 
+        # Plot curves AX(t) and AY(t)
+        self.mw.twoPlots_AxAy.setEnabled(True)
+        self.mw.tabs.setCurrentWidget(self.mw.twoPlots_xy)
+        self.mw.twoPlots_AxAy.Plot()
+
 
     def extract_images_from_video(self) :
         # name of the video file without path and suffix:
@@ -472,8 +477,7 @@ class ImageDisplay(QWidget):
 
     def computeTargetColor(self, draw_selection=False):
         col_min,row_min,col_max,row_max = self.selection.getCoords()
-        print("Pixels selectionnés : lignes [{},{}] colonnes [{},{}]".\
-              format(row_min, row_max, col_min, col_max))
+        print(f"Pixels selectionnés : lignes [{row_min},{row_max}] colonnes [{col_min},{col_max}]")
 
         tab = imread(self.img_path)
         self.target_pix = tab[row_min:row_max+1, col_min:col_max+1, :]

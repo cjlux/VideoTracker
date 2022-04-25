@@ -204,15 +204,20 @@ class OnePlot(QWidget):
 
 
 class TwoPlots(QWidget):
-    ''' Widget to plot 2 curves x(t) & y(t), or Vx(t) & Vy(t)'''
+    ''' Widget to plot 2 curves x(t) & y(t), or Vx(t) & Vy(t), Ax(t) & Ay(t)'''
 
-    Ylabels = {"position":     ("X [pixel]",    "Y [pixel]"),
-               "velocity":     ("VX [pixel/s]", "VY [pixel/s]"),
-               "position_mm":  ("X [mm]",       "Y [mm]"),               
-               "velocity_mm":  ("VX [mm/s]",    "VY [mm/s]")}
+    Ylabels = {"position":    ("X [pixel]",    "Y [pixel]"),
+               "velocity":    ("VX [pixel/s]", "VY [pixel/s]"),
+               "acceleration":      ("AX [pixel/s^2]", "AY [pixel/s^2]"),
+               "position_mm": ("X [mm]",       "Y [mm]"),               
+               "velocity_mm": ("VX [mm/s]",    "VY [mm/s]"),
+               "acceleration_mm":    ("AX [mm/s^2]",    "AY [mm/s^2]")
+               }
     
     CurveLabels = {"position": ("X(t) [{}]", "Y(t) [{}]"),
-                   "velocity": ("VX(t) {}", "VY(t) {}")}
+                   "velocity": ("VX(t) {}", "VY(t) {}"),
+                   "acceleration":   ("AX(t) {}", "AY(t) {}"),
+                   }
     
     def __init__(self, mainWindow, quantity):
 
@@ -222,7 +227,7 @@ class TwoPlots(QWidget):
         self.mw = mainWindow # la fenêtre de l'application principale
 
         # Attributs (objets persistants)
-        self.__quantity   = quantity # "position" or "velocity"
+        self.__quantity   = quantity # "position" or "velocity" or "acceleration"
         self.__data1      = None     # data for the first plot 
         self.__data2      = None     # data for tthe second 
         self.__figure     = None     # figure tracé
@@ -240,8 +245,8 @@ class TwoPlots(QWidget):
         self.btn_imageSize = QRadioButton("ImageSize", self)
         self.btn_autoSize  = QRadioButton("AutoSize", self)
             
-        self.btn_smooth_Vx = QCheckBox("Lissage Vx", self)
-        self.btn_smooth_Vy = QCheckBox("Lissage Vy", self)
+        self.btn_smooth_x  = QCheckBox("Smooth_X", self)
+        self.btn_smooth_y  = QCheckBox("smooth_Y", self)
         self.x_mav_nb_pts  = QSpinBox(parent=self)  # X velocity moving average 
         self.y_mav_nb_pts  = QSpinBox(parent=self)  # Y velocity moving average 
          
@@ -252,7 +257,7 @@ class TwoPlots(QWidget):
 
         if  self.__quantity == "position":
 
-            for w in (self.btn_smooth_Vx, self.btn_smooth_Vy,
+            for w in (self.btn_smooth_x, self.btn_smooth_y,
                       self.x_mav_nb_pts, self.y_mav_nb_pts):
                 w.setVisible(False)
                 w.setEnabled(False)
@@ -279,8 +284,8 @@ class TwoPlots(QWidget):
                 w.setVisible(False)
                 w.setEnabled(False)
 
-            self.btn_smooth_Vx.stateChanged.connect(self.__smooth_Vx_wanted)
-            self.btn_smooth_Vy.stateChanged.connect(self.__smooth_Vy_wanted)
+            self.btn_smooth_x.stateChanged.connect(self.__smooth_x_wanted)
+            self.btn_smooth_y.stateChanged.connect(self.__smooth_y_wanted)
             
             self.x_mav_nb_pts.setEnabled(False)
             self.y_mav_nb_pts.setEnabled(False)
@@ -288,8 +293,26 @@ class TwoPlots(QWidget):
             self.y_mav_nb_pts.setRange(3,100)
             self.x_mav_nb_pts.setSingleStep(2)
             self.y_mav_nb_pts.setSingleStep(2)           
-            self.x_mav_nb_pts.valueChanged.connect(self.__smooth_vX)
-            self.y_mav_nb_pts.valueChanged.connect(self.__smooth_vY)
+            self.x_mav_nb_pts.valueChanged.connect(self.__do_smooth_X)
+            self.y_mav_nb_pts.valueChanged.connect(self.__do_smooth_Y)
+
+        elif self.__quantity == "acceleration":
+
+            for w in (self.btn_imageSize, self.btn_autoSize):
+                w.setVisible(False)
+                w.setEnabled(False)
+
+            self.btn_smooth_x.stateChanged.connect(self.__smooth_x_wanted)
+            self.btn_smooth_y.stateChanged.connect(self.__smooth_y_wanted)
+            
+            self.x_mav_nb_pts.setEnabled(False)
+            self.y_mav_nb_pts.setEnabled(False)
+            self.x_mav_nb_pts.setRange(3,100)
+            self.y_mav_nb_pts.setRange(3,100)
+            self.x_mav_nb_pts.setSingleStep(2)
+            self.y_mav_nb_pts.setSingleStep(2)           
+            self.x_mav_nb_pts.valueChanged.connect(self.__do_smooth_X)
+            self.y_mav_nb_pts.valueChanged.connect(self.__do_smooth_Y)            
             
         vbox = QVBoxLayout()
         self.setLayout(vbox)
@@ -313,97 +336,99 @@ class TwoPlots(QWidget):
             hbox.addWidget(self.btn_imageSize)
             hbox.addWidget(self.btn_autoSize)        
             
-        elif self.__quantity == "velocity":
+        elif self.__quantity in ("velocity", "acceleration"):
             vb = QVBoxLayout()
             hb = QHBoxLayout()        
-            hb.addWidget(self.btn_smooth_Vx)
+            hb.addWidget(self.btn_smooth_x)
             hb.addWidget(self.x_mav_nb_pts)
             vb.addLayout(hb)
             hb = QHBoxLayout() 
-            hb.addWidget(self.btn_smooth_Vy)
+            hb.addWidget(self.btn_smooth_y)
             hb.addWidget(self.y_mav_nb_pts)
             vb.addLayout(hb)            
             hbox.addLayout(vb)
-            
+
         vbox.addLayout(hbox)            
 
     def reset(self):
-        if self.__quantity == "velocity":
-            for w in (self.btn_smooth_Vx, self.btn_smooth_Vy,
+        if self.__quantity in ("velocity", "acceleration"):
+            for w in (self.btn_smooth_x, self.btn_smooth_y,
                       self.x_mav_nb_pts, self.y_mav_nb_pts):
                 w.setVisible(True)
                 w.setEnabled(True)
             self.x_mav_nb_pts.setValue(self.x_mav_nb_pts.minimum())
             self.y_mav_nb_pts.setValue(self.y_mav_nb_pts.minimum())
-            self.btn_smooth_Vx.setCheckState(Qt.Unchecked)
-            self.btn_smooth_Vy.setCheckState(Qt.Unchecked)
+            self.btn_smooth_x.setCheckState(Qt.Unchecked)
+            self.btn_smooth_y.setCheckState(Qt.Unchecked)
                                      
 
-    def __smooth_Vx_wanted(self, checked):
+    def __smooth_x_wanted(self, checked):
         if checked:
             self.x_mav_nb_pts.setEnabled(True)
         else:            
             self.x_mav_nb_pts.setEnabled(False)
         self.Plot()            
 
-    def __smooth_Vy_wanted(self, checked):
+    def __smooth_y_wanted(self, checked):
         if checked:
             self.y_mav_nb_pts.setEnabled(True)
         else:            
             self.y_mav_nb_pts.setEnabled(False)
         self.Plot()
             
-    def __smooth_vX(self, nb_pts):
-        if self.btn_smooth_Vx.isChecked():
+    def __do_smooth_X(self, nb_pts):
+        if self.btn_smooth_x.isChecked():
             self.Plot()
         else:
             pass
 
-    def __smooth_vY(self, nb_pts):
-        if self.btn_smooth_Vy.isChecked():
+    def __do_smooth_Y(self, nb_pts):
+        if self.btn_smooth_y.isChecked():
             self.Plot()
         else:
             pass
 
-    def __compute_velocity(self, U, plot_id):
-        """Computes the velocity with the centered finite difference of order 1 :
-           V[i] = (U[i+1] - U[i-1])/(T[i+1] - T[i-1])  for i in [1,N-1]
-           V[0] = (U[1] - U[0])/(T[1] - T[0])
-           V[-1] = (U[-1] - U[-2])/(T[-1] - T[-2])
+    def __compute_first_derivative(self, U, deltaT):
+        """Computes the first derivative of U with the centered finite difference of order 1 :
+           D[i]  = (U[i+1] - U[i-1])/(T[i+1] - T[i-1])  for i in [1,N-1]
+           D[ 0] = (U[1] - U[0])/(T[1] - T[0])
+           D[-1] = (U[-1] - U[-2])/(T[-1] - T[-2])
         """
-        V = U.copy()
-        T = self.__time
-        V[0]  = (U[ 1]-U[ 0])/(T[ 1]-T[ 0])
-        V[-1] = (U[-1]-U[-2])/(T[-1]-T[-2])
-        V[1:-1] = (U[2:]-U[:-2])/(T[2:]-T[:-2])
+        D = U.copy()
+        D[0]    = (U[ 1] - U[  0])/deltaT
+        D[-1]   = (U[-1] - U[ -2])/deltaT
+        D[1:-1] = (U[2:] - U[:-2])/deltaT
+        return D
 
-        if plot_id == "x":
-            if self.btn_smooth_Vx.isChecked():
-                N = self.x_mav_nb_pts.value()
-                V = self.__smooth_data(V, N)
-        elif plot_id == "y":
-            if self.btn_smooth_Vy.isChecked():
-                N = self.y_mav_nb_pts.value()
-                V = self.__smooth_data(V, N)
-        return V
+    def __compute_second_derivative(self, U, deltaT):
+        """Computes the second derivative of U with the centered finite difference of order 1 :
+           D[i]  = (U[i-1] -2*U[i] + U[i+1])/Delta_T[i]**2  for i in [1,N-1]
+           D[ 0] = (U[1] - U[0])/(T[1] - T[0])
+           D[-1] = (U[-1] - U[-2])/(T[-1] - T[-2])
+        """
+        D = U.copy()
+        D[0]    = (U[ 0]  - 2*U[ 1]   + U[ 2])/deltaT**2
+        D[-1]   = (U[-3]  - 2*U[-2]   + U[-1])/deltaT**2
+        D[1:-1] = (U[:-2] - 2*U[1:-1] + U[2:])/deltaT**2
+        return D
 
     def __smooth_data(self, U, nb_pts):
         """Computes the nb_pts moving average on U."""
         N = nb_pts
-        V = U.copy()
-        V.fill(np.nan)
+        S = U.copy()
+        S.fill(np.nan)
         mav = deque(maxlen=N)
         # initialize the mav (moving average) 
         for e in U[:N]: mav.append(e)
         # move!
         index, count = N//2, 0
-        while count < V.shape[0] - N :
-            V[index] = np.mean(mav)
+        while count < S.shape[0] - N :
+            S[index] = np.mean(mav)
             mav.append(U[N+count])
             count += 1
             index += 1
             
-        return V                   
+        return S                   
 
     def Plot(self):
 
@@ -412,12 +437,13 @@ class TwoPlots(QWidget):
             return
         else:        
             self.__data1, self.__data2, I = target_pos
+
         scale = self.mw.imageTab.pix_to_mm_coeff
             
         if self.__quantity == "position":
             self.btn_imageSize.setEnabled(True)
             self.btn_autoSize.setEnabled(True)
-        elif self.__quantity == "velocity":
+        elif self.__quantity in ("velocity", "acceleration"):
             pass
 
         # Effacement automatiqe si demandé à chaque nouveau tracé :
@@ -441,16 +467,39 @@ class TwoPlots(QWidget):
 
         if self.__quantity == "velocity" :
             if deltaT is not None:
-                self.__data1 = self.__compute_velocity(self.__data1, "x")
-                self.__data2 = self.__compute_velocity(self.__data2, "y")
-                if self.btn_smooth_Vx.isChecked():
+                self.__data1 = self.__compute_first_derivative(self.__data1, deltaT)
+                self.__data2 = self.__compute_first_derivative(self.__data2, deltaT)
+                self.__data1, self.__data2 = self.__data1[2:-2], self.__data2[2:-2]
+                self.__time = self.__time[2:-2]
+                print(self.__time.shape, self.__data1.shape, self.__data2.shape)
+                if self.btn_smooth_x.isChecked():
                     N = self.x_mav_nb_pts.value()
-                if self.btn_smooth_Vy.isChecked():
+                    self.__data1 = self.__smooth_data(self.__data1, N)
+                if self.btn_smooth_y.isChecked():
                     N = self.y_mav_nb_pts.value()
+                    self.__data2 = self.__smooth_data(self.__data2, N)
                 self.__AutoSizePlotXYLim()
             else:
                 self.__data1, self.__data2 = None, None
             self.mw.target_veloc = np.array([self.__data1, self.__data2])
+            
+        elif self.__quantity == "acceleration" :
+            if deltaT is not None:
+                self.__data1 = self.__compute_second_derivative(self.__data1, deltaT)
+                self.__data2 = self.__compute_second_derivative(self.__data2, deltaT)
+                self.__data1, self.__data2 = self.__data1[2:-2], self.__data2[2:-2]
+                self.__time = self.__time[2:-2]
+                if self.btn_smooth_x.isChecked():
+                    N = self.x_mav_nb_pts.value()
+                    self.__data1 = self.__smooth_data(self.__data1, N)
+                if self.btn_smooth_y.isChecked():
+                    N = self.y_mav_nb_pts.value()
+                    self.__data2 = self.__smooth_data(self.__data2, N)
+                self.__AutoSizePlotXYLim()
+            else:
+                self.__data1, self.__data2 = None, None
+            self.mw.target_accel = np.array([self.__data1, self.__data2])
+            
         else:
             self.__ImageSizePlotXYLim()
         
@@ -464,7 +513,7 @@ class TwoPlots(QWidget):
 
         color = 'b' if self.mw.target_RGB is None else self.mw.target_RGB/255
 
-        # tracé de courbe x(t)
+        # First drwaing on X:
         self.__axes1.plot(self.__time, self.__data1*scale,
                           color = color,
                           marker = 'o', markersize = 2,
@@ -475,7 +524,7 @@ class TwoPlots(QWidget):
         #                   bbox_to_anchor=(-0.1, 1.1), loc='upper left')
         self.__axes1.legend(loc='best',fontsize=10)
 
-        # tracé de courbe y(t)
+        # Second drawing on Y:
         self.__axes2.plot(self.__time, self.__data2*scale,
                           color = color,
                           marker = 'o', markersize = 2,
@@ -497,7 +546,7 @@ class TwoPlots(QWidget):
 
         scale = self.mw.imageTab.pix_to_mm_coeff
 
-        if not self.btn_smooth_Vx.isChecked():
+        if not self.btn_smooth_x.isChecked():
             self.__ylim1 = np.array([np.nanmin(self.__data1), np.nanmax(self.__data1)])*scale
             offset = (self.__ylim1[1]-self.__ylim1[0])/10
             self.__ylim1 += np.array([-offset, offset])
@@ -505,7 +554,7 @@ class TwoPlots(QWidget):
             #self.__ylim1 = self.__axes1.get_ylim()
             pass
 
-        if not self.btn_smooth_Vy.isChecked():
+        if not self.btn_smooth_y.isChecked():
             self.__ylim2 = np.array([np.nanmin(self.__data2), np.nanmax(self.__data2)])*scale
             offset = (self.__ylim2[1]-self.__ylim2[0])/10
             self.__ylim2 += np.array([-offset, offset])

@@ -76,6 +76,7 @@ class VideoTracker(QMainWindow):
         self.csv_dataFrame  = None # Data 
         self.__target_pos   = None # target positions x, y
         self.__target_veloc = None # target velocities x, y
+        self.__target_accel = None # target accelerations x, y
         self.target_RGB     = None # color plor drawing plots
         self.unit_dict      = None
             
@@ -97,8 +98,16 @@ class VideoTracker(QMainWindow):
     @target_veloc.setter
     def target_veloc(self, data):
         if not isinstance(data, np.ndarray):
-            raise Exception("target_pos should be a numpy.ndarray object !")
+            raise Exception("target_veloc should be a numpy.ndarray object !")
         self.__target_veloc = data
+    @property
+    def target_accel(self): return self.__target_accel
+
+    @target_accel.setter
+    def target_accel(self, data):
+        if not isinstance(data, np.ndarray):
+            raise Exception("target_accel should be a numpy.ndarray object !")
+        self.__target_accel = data
 
     def center(self):
         '''To center the current window in the current display'''
@@ -125,16 +134,19 @@ class VideoTracker(QMainWindow):
         self.twoPlots_xy = TwoPlots(self, "position")
         # tab4: plot curves Vx(t) and Vy(t)
         self.twoPlots_VxVy = TwoPlots(self, "velocity")
-        # tab5: plot of f(t)=f(x(t), y(t), t)
+        # tab5: plot curves Ax(t) and Ay(t)
+        self.twoPlots_AxAy = TwoPlots(self, "acceleration")
+        # tab6: plot of f(t)=f(x(t), y(t), t)
         self.functionOfXY = FunctionPlot(self)
-        # tab6: IPython shell
+        # tab7: IPython shell
         self.pythonConsole = PythonConsole(self)
 
-        self.tabs.addTab(self.imageTab,"Visualisation images")
-        self.tabs.addTab(self.onePlot,"Trajectoire")
+        self.tabs.addTab(self.imageTab,"Images visualisation")
+        self.tabs.addTab(self.onePlot,"Trajectories")
         self.tabs.addTab(self.twoPlots_xy,"Positions")
-        self.tabs.addTab(self.twoPlots_VxVy,"Vitesses")
-        self.tabs.addTab(self.functionOfXY,"Outil de tracé")
+        self.tabs.addTab(self.twoPlots_VxVy,"Velocities")
+        self.tabs.addTab(self.twoPlots_AxAy,"Accelerations")
+        self.tabs.addTab(self.functionOfXY,"Drawing tool")
         self.tabs.addTab(self.pythonConsole,"IPython")
         self.setCentralWidget(self.tabs)
 
@@ -240,6 +252,7 @@ class VideoTracker(QMainWindow):
         self.onePlot.ClearAxes()
         self.twoPlots_xy.ClearAxes()
         self.twoPlots_VxVy.ClearAxes()
+        self.twoPlots_AxAy.ClearAxes()
         self.functionOfXY.ClearAxes()
 
     def ImportCSV(self):
@@ -322,6 +335,7 @@ class VideoTracker(QMainWindow):
         self.imageTab.img_lbl.setPixmap(QPixmap())
         
         self.twoPlots_VxVy.reset()
+        self.twoPlots_AxAy.reset()
 
 
     def ExportCSV(self):
