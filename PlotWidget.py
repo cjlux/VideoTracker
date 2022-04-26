@@ -388,11 +388,11 @@ class TwoPlots(QWidget):
         else:
             pass
 
-    def __compute_first_derivative(self, U, deltaT):
-        """Computes the first derivative of U with the centered finite difference of order 1 :
-           D[i]  = (U[i+1] - U[i-1])/(T[i+1] - T[i-1])  for i in [1,N-1]
-           D[ 0] = (U[1] - U[0])/(T[1] - T[0])
-           D[-1] = (U[-1] - U[-2])/(T[-1] - T[-2])
+    def __compute_first_derivative_order2(self, U, deltaT):
+        """Computes the first deri_vative of U with the centered finite difference of order 1 :
+           D[i]  = (U[i+1] - U[i-1])/(2*deltaT)  for i in [1,N-2]
+           D[ 0] = (-3*U[ 0] + 4*U[ 1] -   U[ 2])/(2*deltaT)
+           D[-1] = (   U[-3] - 4*U[-2] + 3*U[-1])/(2*deltaT)
         """
         D = U.copy()
         D[0]    = (U[ 1] - U[  0])/deltaT
@@ -400,7 +400,7 @@ class TwoPlots(QWidget):
         D[1:-1] = (U[2:] - U[:-2])/deltaT
         return D
 
-    def __compute_second_derivative(self, U, deltaT):
+    def __compute_second_derivative_order2(self, U, deltaT):
         """Computes the second derivative of U with the centered finite difference of order 1 :
            D[i]  = (U[i-1] -2*U[i] + U[i+1])/Delta_T[i]**2  for i in [1,N-1]
            D[ 0] = (U[1] - U[0])/(T[1] - T[0])
@@ -410,6 +410,34 @@ class TwoPlots(QWidget):
         D[0]    = (U[ 0]  - 2*U[ 1]   + U[ 2])/deltaT**2
         D[-1]   = (U[-3]  - 2*U[-2]   + U[-1])/deltaT**2
         D[1:-1] = (U[:-2] - 2*U[1:-1] + U[2:])/deltaT**2
+        return D
+
+
+    def __compute_first_derivative_order4(self, U, deltaT):
+        """Computes the first derivative of U with the centered finite difference of order 1 :
+           D[i]  = ((U[i-2] - 8*U[i-1]  8*U[i+1] -U[i+2])/(12*deltaT)  for i in [2,N-2]
+           D[0]  = (-25*U[ 0] + 48*U[ 1] - 36*U[ 2] + 16*U[ 3] -  3*U[ 4])
+           D[1]  =  -3*U[ 0] - 10*U[ 1] + 18*U[ 2] -  6*U[ 3] +  1*U[ 4]
+           D[-2] =  -1*U[-5] +  6*U[-4] - 18*U[-3] + 10*U[-2] +  3*U[-1]
+           D[-1] =   3*U[-5] - 16*U[-4] + 36*U[-3] - 48*U[-2] + 25*U[-1] 
+        """
+        D = U.copy()
+        D[0]    = (-25*U[ 0] + 48*U[ 1] - 36*U[ 2] + 16*U[ 3] -  3*U[ 4])/(12*deltaT)
+        D[1]    = ( -3*U[ 0] - 10*U[ 1] + 18*U[ 2] -  6*U[ 3] +  1*U[ 4])/(12*deltaT)
+        D[-2]   = ( -1*U[-5] +  6*U[-4] - 18*U[-3] + 10*U[-2] +  3*U[-1])/(12*deltaT)
+        D[-1]   = (  3*U[-5] - 16*U[-4] + 36*U[-3] - 48*U[-2] + 25*U[-1] )/(12*deltaT)
+        D[2:-2] = ( U[:-4] - 8*U[1:-3] + 8*U[3:-1] - U[4:])/(12*deltaT)
+        return D
+
+
+    def __compute_second_derivative_order4(self, U, deltaT):
+        """Computes the second derivative of U with the centered finite difference of order 1 :
+           D[i]  = (-U[i-2] +16*U[i-1] -30*U[i] + 16*U[i+1] -U[i+2])/(12*Delta_T**2)  for i in [1,N-1]
+           D[ 0] = 
+           D[-1] = 
+        """
+        D = U.copy()
+        D[2:-2] = (-U[:-4] + 16*U[1:-3] - 30*U[2:-2] + 16*U[3:-1] - U[4:])/(12*deltaT**2)
         return D
 
     def __smooth_data(self, U, nb_pts):
@@ -467,11 +495,10 @@ class TwoPlots(QWidget):
 
         if self.__quantity == "velocity" :
             if deltaT is not None:
-                self.__data1 = self.__compute_first_derivative(self.__data1, deltaT)
-                self.__data2 = self.__compute_first_derivative(self.__data2, deltaT)
+                self.__data1 = self.__compute_first_derivative_order4(self.__data1, deltaT)
+                self.__data2 = self.__compute_first_derivative_order4(self.__data2, deltaT)
                 self.__data1, self.__data2 = self.__data1[2:-2], self.__data2[2:-2]
                 self.__time = self.__time[2:-2]
-                print(self.__time.shape, self.__data1.shape, self.__data2.shape)
                 if self.btn_smooth_x.isChecked():
                     N = self.x_mav_nb_pts.value()
                     self.__data1 = self.__smooth_data(self.__data1, N)
@@ -485,8 +512,8 @@ class TwoPlots(QWidget):
             
         elif self.__quantity == "acceleration" :
             if deltaT is not None:
-                self.__data1 = self.__compute_second_derivative(self.__data1, deltaT)
-                self.__data2 = self.__compute_second_derivative(self.__data2, deltaT)
+                self.__data1 = self.__compute_second_derivative_order4(self.__data1, deltaT)
+                self.__data2 = self.__compute_second_derivative_order4(self.__data2, deltaT)
                 self.__data1, self.__data2 = self.__data1[2:-2], self.__data2[2:-2]
                 self.__time = self.__time[2:-2]
                 if self.btn_smooth_x.isChecked():
@@ -546,7 +573,7 @@ class TwoPlots(QWidget):
 
         scale = self.mw.imageTab.pix_to_mm_coeff
 
-        if not self.btn_smooth_x.isChecked():
+        if not False:   #self.btn_smooth_x.isChecked():
             self.__ylim1 = np.array([np.nanmin(self.__data1), np.nanmax(self.__data1)])*scale
             offset = (self.__ylim1[1]-self.__ylim1[0])/10
             self.__ylim1 += np.array([-offset, offset])
@@ -554,7 +581,7 @@ class TwoPlots(QWidget):
             #self.__ylim1 = self.__axes1.get_ylim()
             pass
 
-        if not self.btn_smooth_y.isChecked():
+        if not False:    #self.btn_smooth_y.isChecked():
             self.__ylim2 = np.array([np.nanmin(self.__data2), np.nanmax(self.__data2)])*scale
             offset = (self.__ylim2[1]-self.__ylim2[0])/10
             self.__ylim2 += np.array([-offset, offset])
