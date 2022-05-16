@@ -81,7 +81,7 @@ class FunctionPlot(QWidget):
         mess = '''Type in a Python expression like: Y-Y.mean()
                   In this expression you can use use:
                   - the position vector X or Y,
-                  - the vecolity vector VX or VX,
+                  - the vecolity vector VX or VY,
                   - the time vector T'''
         self.__lineZ1Edit.setToolTip(mess)
         self.__lineZ2Edit.setToolTip(mess)
@@ -197,8 +197,10 @@ class FunctionPlot(QWidget):
         VX, VY  = self.mw.target_veloc
         
         expr = self.__lineZ1Edit.text()
+        if "VX" in expr or "VY" in expr :
+            X, Y, T = target_pos[0][2:-2], target_pos[1][2:-2], self.__time[2:-2]
         try:
-            self.__Z1 = eval(expr)
+            self.__Z1 = eval(expr)            
         except:
             print("cannot plot this expression <{}>".format(expr))
             return
@@ -207,7 +209,7 @@ class FunctionPlot(QWidget):
         self.__AutoSizePlotXZLim(1, 'b')
 
         # tracé de courbe X(t)
-        self.__axe1.plot(self.__time, self.__Z1,
+        self.__axe1.plot(T, self.__Z1,
                          color = 'b',
                          marker = 'o',
                          markersize = 2,
@@ -232,6 +234,9 @@ class FunctionPlot(QWidget):
         VX, VY  = self.mw.target_veloc
         
         expr = self.__lineZ2Edit.text()
+        if "VX" in expr or "VY" in expr :
+            X, Y, T = target_pos[0][2:-2], target_pos[1][2:-2], self.__time[2:-2]
+
         try:
             self.__Z2 = eval(expr)
         except:
@@ -242,7 +247,7 @@ class FunctionPlot(QWidget):
         self.__AutoSizePlotXZLim(2, 'm')
         
         # tracé de courbe X(t)
-        self.__axe2.plot(self.__time, self.__Z2,
+        self.__axe2.plot(T, self.__Z2,
                          color = 'm',
                          marker = 'o',
                          markersize = 2,
