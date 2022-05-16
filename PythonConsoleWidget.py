@@ -59,24 +59,26 @@ class PythonConsole(QWidget):
 
         target_pos    = copy(self.mw.target_pos)
         target_veloc  = copy(self.mw.target_veloc)
+        target_accel  = copy(self.mw.target_accel)
         csv_dataFrame = copy(self.mw.csv_dataFrame)
         X, Y   = target_pos[0], target_pos[1]
         VX, VY = target_veloc[0], target_veloc[1]
+        AX, AY = target_accel[0], target_accel[1]
         
-        print(target_pos)
+        #print(target_pos)
         
         if self.mw.imageTab.video_FPS is not None:
             T = np.arange(len(X))/self.mw.imageTab.video_FPS
         else:
             T = np.arange(len(X))+1
-        dico = {'X':X, 'Y':Y, 'VX':VX, 'VY':VY, 'T':T, 'target_pos':target_pos, 'csv_dataFrame':csv_dataFrame}
-        #print("dico:",dico)
+        dico = {'X':X, 'Y':Y, 'VX':VX, 'VY':VY, 'AX': AX, 'AY': AY, 'T':T, 'target_pos':target_pos, 'csv_dataFrame':csv_dataFrame}
+        print("dico:",dico)
         self.__IpythonConsole.push_vars(dico)
         self.__IpythonConsole.setFocus() # give focus to the IPython console
         rep = QMessageBox.information(
                   None,         # no parent widget for QMessageBox
                   'Message',    # bandeau de la fenêtre
-                  'Objects X, Y, VX, VY, T and target_pos have been loaded',
+                  'Objects X, Y, VX, VY,AX, AY, T and target_pos have been loaded',
                    QMessageBox.Ok)
 
 
@@ -87,11 +89,13 @@ class PythonConsole(QWidget):
             self.__IpythonConsole.execute_command('if "target_pos" in dir():del target_pos')
             self.__IpythonConsole.execute_command('if "VX" in dir(): del VX')
             self.__IpythonConsole.execute_command('if "VY" in dir(): del VY')
+            self.__IpythonConsole.execute_command('if "AX" in dir(): del AX')
+            self.__IpythonConsole.execute_command('if "AY" in dir(): del AY')
             self.__IpythonConsole.execute_command('clear')
             rep = QMessageBox.information(
                   None,         # no parent widget for QMessageBox
                   'Message',    # bandeau de la fenêtre
-                  'Objects X, Y, VX, VY, T and and target_pos have been deleted',
+                  'Objects X, Y, VX, VY, AX, AY T and and target_pos have been deleted',
                    QMessageBox.Ok)
             self.__IpythonConsole.print_text("")
             

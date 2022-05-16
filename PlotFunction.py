@@ -42,7 +42,7 @@ class FunctionPlot(QWidget):
         self.__XYLabel1   = ["",""] # X and Y plot labels
         self.__XYLabel2   = ["",""] # X and Y plot labels
         self.__Z1         = None  # data to plot: Z1(t) = f(X(t),Y(t),t)
-        self.__Z1         = None  # data to plot: Z2(t) = f(X(t),Y(t),t)
+        self.__Z2         = None  # data to plot: Z2(t) = f(X(t),Y(t),t)
 
         self.__labelZ1Edit  = QLabel("Z1 : Python expr. to plot", self)
         self.__lineZ1Edit   = QLineEdit("Y-Y.mean()",self)
@@ -82,6 +82,7 @@ class FunctionPlot(QWidget):
                   In this expression you can use use:
                   - the position vector X or Y,
                   - the vecolity vector VX or VY,
+                  - the acceleration vector AX or AY,
                   - the time vector T'''
         self.__lineZ1Edit.setToolTip(mess)
         self.__lineZ2Edit.setToolTip(mess)
@@ -185,6 +186,63 @@ class FunctionPlot(QWidget):
             self.__XYLabel1[0] = "image #"
             self.__XYLabel2[0] = "image #"
 
+    def PlotZ(self, one_or_two):
+
+        target_pos = self.mw.target_pos
+        if target_pos is None: return
+
+        colors = (None, "b", "m")
+        labels = (None, "Z1(t)=", "Z2(t)=")
+        axes = (None, self.__axe1, self.__axe2)
+        self.__buildTimeVector(target_pos)
+
+        X, Y, T = target_pos[0], target_pos[1], self.__time
+        VX, VY  = self.mw.target_veloc
+        AX, AY  = self.mw.target_accel
+
+        if one_or_two == 1:
+            expr = self.__lineZ1Edit.text()
+        else:
+            expr = self.__lineZ2Edit.text()
+            
+        if "VX" in expr or "VY" in expr or "AX" in expr or "AY"in expr :
+            X, Y, T = target_pos[0][2:-2], target_pos[1][2:-2], self.__time[2:-2]
+
+        try:
+            if one_or_two == 1:
+                self.__Z1 = eval(expr)
+            else:
+                self.__Z2 = eval(expr)
+        except:
+            print("cannot plot this expression <{}>".format(expr))
+            return
+
+        if one_or_two == 1:            
+            self.__XYLabel1[1] = self.__lineZ1label.text()
+            self.__AutoSizePlotXZLim(1, 'b')
+        else:
+            self.__XYLabel2[1] = self.__lineZ2label.text()
+            self.__AutoSizePlotXZLim(2, 'b')
+
+        # tracé de courbe X(t)
+        axe = axes[one_or_two]
+        Zs = (None, self.__Z1, self.__Z2)
+        Z = Zs[one_or_two]
+        
+        axe.plot(T, Z,
+                    color = colors[one_or_two],
+                    marker = 'o',
+                    markersize = 2,
+                    linewidth = .4,
+                    label=labels[one_or_two]+expr)
+        axe.grid(True)
+        axe.legend(fontsize=9, framealpha=0.7,
+                   bbox_to_anchor=(-0.1, 1.1), loc='upper left')
+        axe.tick_params(axis='y', labelcolor='b')
+
+        self.__canvas.draw()
+        self.__btnCSV.setEnabled(True)
+
 
     def PlotZ1(self):
 
@@ -261,6 +319,10 @@ class FunctionPlot(QWidget):
 
         self.__btnCSV.setEnabled(True)
 
+    def PlotZ1(self): self.PlotZ(1)
+
+    def PlotZ2(self): self.PlotZ(2)
+    
     def ExportCSV(self):
         '''Export Data in a CSV file.'''
         if self.__Z1 is None :
