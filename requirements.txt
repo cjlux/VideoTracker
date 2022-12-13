@@ -1,5 +1,8 @@
 pandas
-pyqt5==5.10.1
+pyqt5==5.12.3
 qtconsole==4.6.0
-jupyter-client==5.3.4
-opencv-python==4.5.1.48
+jupyter-client==7.0.0
+opencv-python==4.6.0.66
+opencv-contrib-python==4.6.0.66
+
+
